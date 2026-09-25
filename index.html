@@ -1,0 +1,4626 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Voxel Engine</title>
+    </head>
+    <body>
+
+<script src='https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js'></script>
+<script src='helper.js'></script>
+
+<style>
+    
+    body{
+        background:black;
+        margin:0px;
+        overflow:hidden;
+        color:rgb(60,60,60);
+        user-select:none;
+    }
+    .hotbarSlot{
+        display:inline-block;
+        position:relative;
+        width:6vmin;
+        height:6vmin;
+        outline:4px solid rgb(130,130,130);
+        cursor:pointer;
+        margin-left:2px;
+    }
+    
+    .invSlot,.inSlot,.outSlot{
+        display:inline-block;
+        width:6vmin;
+        height:6vmin;
+        background-color:rgb(100,100,100);
+        border-radius:1px;
+        cursor:pointer;
+    }
+    
+</style>
+
+<canvas id='uiCanvas' style='z-index:0'></canvas>
+
+<div style='position:fixed;left:50%;bottom:1vmin;overflow:none;width:max-content;height:6vmin;transform:translate(-50%,0px);z-index:1;background:rgb(40,40,40,0.6);'>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+    <div class='hotbarSlot'></div>
+</div>
+
+<div id='inventoryMenu' style='display:none;position:fixed;left:0px;top:0px;width:100%;height:100%;background-color:rgb(0,0,0,0.3);z-index:3'>
+    
+    <div id='inventoryBox' style='position:fixed;left:50%;top:50%;width:60vmin;height:max-content;background-color:rgb(200,200,200);transform:translate(-50%,-50%);padding-left:0.75vmin;border-radius:1vmin;'>
+        
+        <div id='invMenu' class='menuType' style='display:none'>
+            <div style='margin-left:36vmin;font-family:trebuchet ms;transform:translate(0vmin,0.4vmin)'>Crafting</div>
+            <div style='margin-top:1vmin;margin-left:60%'>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <br>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                
+                <div style='transform:translate(2vmin,-3vmin)' class='outSlot'></div>
+            </div>
+        </div>
+        <div id='craftingTableMenu' class='menuType' style='display:none'>
+            <div style='margin-left:18vmin;font-family:trebuchet ms;transform:translate(0vmin,0.4vmin)'>Crafting</div>
+            <div style='margin-top:1vmin;margin-left:30%'>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <br>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <br>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                <div class='inSlot'></div>
+                
+                <div style='transform:translate(2vmin,-6.5vmin)' class='outSlot'></div>
+            </div>
+        </div>
+        
+        <div style='margin-left:0.5vmin;font-family:trebuchet ms;transform:translate(0vmin,0.4vmin)'>Inventory</div>
+        <div style='margin-top:1vmin;white-space:nowrap;'>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+        </div>
+        <div style='white-space:nowrap;'>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+        </div>
+        <div style='white-space:nowrap;'>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+        </div>
+        <div style='margin-top:3vmin;white-space:nowrap;'>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+            <div class='invSlot'></div>
+        </div>
+        
+    </div>
+    
+</div>
+
+<canvas id='overlay' style='position:fixed;left:0px;top:0px;width:100%;height:100%;z-index:4;pointer-events:none'></canvas>
+
+<div id='exporter' style='display:none;position:fixed;left:5px;top:5px;width:90%;height:60%;'>
+    <div style='background-color:rgb(255,255,255,0.8);width:max-content'>Copy your save code:</div>
+    <textarea id='exporterText' style='color:black;font-size:10px;left:5px;top:5px;width:90%;height:100%;' readonly></textarea>
+    <br>
+    <button id='exporterDone'>Done</button>
+</div>
+
+<script id='terrainWorker' type='worker/text'>
+
+let D={}
+D.constrain=(x,a,b)=>x<a?a:x>b?b:x
+D.map=(value,istart,istop,ostart,ostop)=>ostart+(ostop-ostart)*((value-istart)/(istop-istart))
+D.lerp=(a,b,x)=>x*(b-a)+a
+
+D.noiseProperties={octaves:2,decay:0.5,upsize:2}
+
+let H1=0,
+    H2=0,
+    H3=0,
+    H4=0,
+    H5=0,
+    H6=0
+
+D.Hash_1=(x)=>{
+    let n=(x^H1)*563.252342
+    return n-Math.floor(n)
+}
+D.Hash_2=(x,y)=>{
+    x^=H2
+    y^=H3
+    let n=(x*527.53851+y*439.522341-(x*y*257.611))*(x+y)*0.0012294+0.5
+    return n-Math.floor(n)
+}
+D.Hash_3=(x,y,z)=>{
+    x^=H4
+    y^=H5
+    z^=H6
+    let n=x*124.518+y*129.321+z*131.145-(x*y*100.836+z*201.51)
+    return n-Math.floor(n)
+}
+D.Smoothstep=(a,b,t)=>(b-a)*t*t*(3-(t+t))+a
+D.Noise1D_base=(x)=>{
+    let _x=Math.floor(x)
+    return D.Smoothstep(D.Hash_1(_x),D.Hash_1(_x+1),x-_x)
+}
+D.Noise2D_base=(x,y)=>{
+    let _x=Math.floor(x),_y=Math.floor(y),lt=D.Hash_2(_x,_y),lb=D.Hash_2(_x,_y+1),rt=D.Hash_2(_x+1,_y),rb=D.Hash_2(_x+1,_y+1),l=D.Smoothstep(lt,lb,y-_y),r=D.Smoothstep(rt,rb,y-_y)
+    return D.Smoothstep(l,r,x-_x)
+}
+D.Noise3D_base=(x,y,z)=>{
+    let _x=Math.floor(x),_y=Math.floor(y),_z=Math.floor(z),ltf=D.Hash_3(_x,_y,_z),rtf=D.Hash_3(_x+1,_y,_z),rbf=D.Hash_3(_x+1,_y+1,_z),rbb=D.Hash_3(_x+1,_y+1,_z+1),lbb=D.Hash_3(_x,_y+1,_z+1),ltb=D.Hash_3(_x,_y,_z+1),rtb=D.Hash_3(_x+1,_y,_z+1),lbf=D.Hash_3(_x,_y+1,_z),lt=D.Smoothstep(ltf,ltb,z-_z),lb=D.Smoothstep(lbf,lbb,z-_z),rt=D.Smoothstep(rtf,rtb,z-_z),rb=D.Smoothstep(rbf,rbb,z-_z),l=D.Smoothstep(lt,lb,y-_y),r=D.Smoothstep(rt,rb,y-_y)
+    
+    return D.Smoothstep(l,r,x-_x)
+}
+D.Noise1D=(x)=>{
+    let n=0,d=1,u=1,_x=x,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=D.Noise1D_base(_x)*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+    }
+    return n/(t)-0.5
+}
+D.Noise2D=(x,y)=>{
+    let n=0,d=1,u=1,_x=x,_y=y,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=(D.Noise2D_base(_x,_y)+D.Noise2D_base(_y*0.707107-_x*0.707107-100,_y*0.707107+_x*0.707107-100)+D.Noise2D_base(_y*-0.707107+_x*0.707107-200,_y*-0.707107-_x*0.707107-200))*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+        _y*=D.noiseProperties.upsize
+    }
+    return n/(t*3)-0.5
+}
+D.Noise3D=(x,y,z)=>{
+    let n=0,d=1,u=1,_x=x,_y=y,_z=z,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=(D.Noise3D_base(_x,_y,_z)+D.Noise3D_base(_y*0.707107-_x*0.707107-100,_y*0.707107+_x*0.707107-100,_z-100)+D.Noise3D_base(_y*-0.707107+_x*0.707107-200,_y*-0.707107-_x*0.707107-200,_z-200))*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+        _y*=D.noiseProperties.upsize
+        _z*=D.noiseProperties.upsize
+    }
+    return n/(t*3)-0.5
+}
+
+function getRand(a,b,c,start=0,end=1) {
+    let h32=H1+374761393|0
+    h32+=Math.imul(a,2034071983)+8
+    h32=Math.imul(h32<<17|h32>>32-17,668265263)
+    h32+=Math.imul(b,2034071983)
+    h32=Math.imul(h32<<17|h32>>32-17,668265263)
+    h32+=Math.imul(c,2034071983)
+    h32=Math.imul(h32<<17|h32>>32-17,668265263)
+    h32^=h32>>15
+    h32*=1883677709
+    h32^=h32>>13
+    h32*=2034071983
+    h32^=h32>>16
+    return h32/2147483647
+}
+let normalDist=(a,b,c,mean,std)=>
+    D.constrain(Math.sqrt(-2*Math.log(getRand(a,b,c)))*Math.sin(6.283185*getRand(b,-c,-a)),-3,3)*std+mean
+
+let chunk={}
+
+!!INJECT HERE!!
+
+self.onmessage=function(e){
+
+let DATA=e.data,
+    SEED=DATA[0],
+
+H1=SEED
+H2=SEED
+H3=SEED
+H4=SEED
+H5=SEED
+H6=SEED
+
+chunk.x=DATA[1]
+chunk.z=DATA[2]
+
+chunk.scale=DATA[3]||1
+chunk.height=256/chunk.scale
+chunk.data=new Uint8Array(16*16*chunk.height)
+
+
+D.noiseProperties={octaves:2,decay:0.5,upsize:2}
+
+let data=chunk.data,
+    B=blocks,
+    lodScale=chunk.scale||1,
+    _lodScale=1/lodScale,
+    freq=0.01,amp=30,
+    seaLevel=63
+    
+    sigmoid=(x)=>1/(1+Math.exp(-x))-0.5,
+    continentalness=(x,z)=>{
+        D.noiseProperties.octaves=1
+        return D.Noise2D(-x*0.0015+129,z*0.0015)
+    },
+    erosion=(x,z)=>{
+        D.noiseProperties.octaves=2
+        return Math.abs(0.2-D.Noise2D(-z*0.005,-x*0.005-527))
+    },
+    humidity=(x,z)=>{
+        D.noiseProperties.octaves=2
+        return Math.abs(0.4-D.Noise2D(x*0.006-313,-z*0.006))
+    },
+    temperature=(x,z)=>{
+        D.noiseProperties.octaves=1
+        return (D.Noise2D(x*0.001+462,z*0.001-329)+D.Noise2D(x*0.1,z*0.1)*0.005)*2
+    },
+    weirdness=(x,z)=>{
+        D.noiseProperties.octaves=2
+        return D.Noise2D(z*0.006-91,x*0.006+59)-0.15
+    },
+    getGround=(x,z)=>{
+        D.noiseProperties.octaves=2
+        let v=D.Noise2D(x*freq,z*freq)+0.5,
+            c=sigmoid(continentalness(x,z)*30),
+            e=Math.min(Math.exp(-erosion(x,z)*12)*15+0.7,8),
+            w=D.map(D.constrain(weirdness(x,z),-0.05,0.1),-0.05,0.1,1,2)
+        
+        D.noiseProperties.octaves=1
+        let river=0.5/(Math.abs(D.Noise2D(z*0.008,x*0.008))*5+0.1)
+        river=river*river*0.8
+        river=D.constrain(river,0,10)*0.1
+        
+        let G=(v*v*amp*e*w)/(D.map(D.constrain(c,-0.3,0),-0.3,0,2,1))+D.map(D.constrain(c,-0.3,0.3),-0.3,0.3,50,70)
+        
+        G=D.lerp(G,Math.min(G,50),D.constrain(river*(1-Math.exp(0.2*G-20)),0,1))
+        
+        return (G)|0
+    },
+    getCaves=(x,y,z,lvl)=>{
+        
+        let ground=getGround(x,z)
+        D.noiseProperties.octaves=1
+        
+        let seaShut=D.Noise2D(-z*0.09,-x*0.09-490)*20+5
+        if(y>ground || ground<seaLevel+seaShut && y>ground-seaShut)return false
+        
+        let bedrockShut=10/(1+y*y*10),
+            sig=D.Noise3D(y*0.08,x*0.05,z*0.05+50),
+            worm=Math.abs(D.Noise2D(-x*0.07+500,z*0.07)),
+            wormY=D.map(D.Noise2D(z*0.01-100,-x*0.01,y*0.1),-0.3,0.3,4,ground)
+        sig=sigmoid(sig*15)
+        if(
+            (worm>0.1 || Math.abs(y-wormY)>Math.max(3-worm*60,0) || 0)
+        &&
+            sig<0.4+bedrockShut)
+            return false
+            
+        return true
+    },
+    doTree=(x,z,ox,oz)=>{
+        let cx=(Math.floor(x*0.2)+ox)*5,
+            cz=(Math.floor(z*0.2)+oz)*5,
+            treeX=((D.Hash_2(cx-124,cz+328)*3+1)|0)+cx,
+            treeZ=((D.Hash_2(-cz+323,-cx-188)*3+1)|0)+cz,
+            treeY=getGround(treeX,treeZ),
+            bx=x*_lodScale-chunk.x,bz=z*_lodScale-chunk.z
+        
+        if(getCaves(treeX,treeY,treeZ,0) || treeY<seaLevel+5 || D.Hash_2(cz,cx)<Math.min(Math.exp(-humidity(treeX,treeZ)*6)*9,0.97) || temperature(treeX,treeZ)>0.2 || weirdness(treeX,treeZ)>0)return
+        
+        treeX-=x
+        treeZ-=z
+        let top=treeY+(D.Hash_2(-cz,cx^123)*1.5|0)+4
+        
+        if(treeX===0&&treeZ===0){
+            let ty=treeY
+                
+            for(let i=treeY;i<top;i++)
+                data[posToInd(bx,(++ty)*_lodScale|0,bz)]=B.log
+            
+            data[posToInd(bx,(++ty)*_lodScale|0,bz)]=B.leaves
+            data[posToInd(bx,(++ty)*_lodScale|0,bz)]=B.leaves
+            data[posToInd(bx,(++ty)*_lodScale|0,bz)]=B.leaves
+            return
+        }
+        
+        let dx=Math.abs(treeX),
+            dz=Math.abs(treeZ),
+            chev=Math.max(dx,dz)
+            
+        if(chev<3){
+            let v1=dx===dz&&dx===2?D.Hash_3(cz+treeX*41,cx-treeZ*23,10):0
+            let v2=dx===dz&&dx===2?D.Hash_3(cz+treeX*41,cx-treeZ*23,20):0
+            if(v1<0.8)
+                data[posToInd(bx,top*_lodScale|0,bz)]=B.leaves
+            if(v2<0.8)
+            data[posToInd(bx,(top+1)*_lodScale|0,bz)]=B.leaves
+        }
+        if(chev<2){
+            let v=dx===dz&&dx===1?D.Hash_2(cz+treeX*41,cx-treeZ*23):1
+            if(v<0.3)return
+            data[posToInd(bx,(top+2)*_lodScale|0,bz)]=B.leaves
+            if(v<0.6)return
+            data[posToInd(bx,(top+3)*_lodScale|0,bz)]=B.leaves
+        }
+    }
+    
+for(let bx=0;bx<16;bx++)
+    for(let bz=0;bz<16;bz++){
+        
+        let x=(chunk.x+bx)*lodScale,z=(chunk.z+bz)*lodScale,
+            ground=getGround(x,z),
+            lvl=0,
+            topLayer=B.grass,
+            crustLayer=B.dirt,
+            crustVar=D.Noise2D(z*0.07+420,x*0.07-120)*4,
+            crustThickness=3+crustVar,
+            temp=temperature(x,z),
+            weird=weirdness(x,z)*D.constrain((ground-seaLevel)*0.1,0,1)
+        
+        if(ground>seaLevel+(D.Noise2D(z*0.07+120,x*0.07)*7+2)){
+            if(temp>0.2){
+                lvl-=4
+                crustThickness+=5
+                topLayer=B.sand
+                crustLayer=B.sandstone
+            }else if(temp<-0.2){
+                topLayer=B.snow
+            }
+        }else if(ground>seaLevel-5){
+            topLayer=B.sand
+            crustLayer=B.sand
+        }
+        
+        let wlvl=0
+        if(weird>0){
+            let tall=500*weird,
+                ease=1/(weird*1000+0.01)
+            
+            D.noiseProperties.octaves=2
+            for(let y=255;y>ground;y-=lodScale){
+                let _y=(y-ground)/tall
+                if(D.Noise3D(x*0.09,z*0.09,y*0.03)<D.map(_y*_y,0,1,0.0,-0.1)-ease){
+                    data[posToInd(bx,y*_lodScale|0,bz)]=lvl<1?topLayer:(lvl>crustThickness?B.stone:crustLayer)
+                    lvl+=lodScale
+                }else
+                    lvl=0
+            }
+        }
+        
+        
+        for(let y=seaLevel;y>ground;y-=_lodScale)
+            data[posToInd(bx,y*_lodScale|0,bz)]=B.water
+        
+        if(ground<seaLevel)
+            ground=Math.min((seaLevel*_lodScale|0)*lodScale-1,ground)
+        
+        for(let y=ground;y>=0;y-=lodScale){
+            
+            let c=crustVar*y*12.52185219-y*0.825174221
+            c=c-Math.floor(c)
+            if(c>y*0.35||!y)
+                data[posToInd(bx,y*_lodScale|0,bz)]=B.bedrock
+            else{
+                
+                if(!getCaves(x,y,z,lvl))
+                    data[posToInd(bx,y*_lodScale|0,bz)]=lvl<1?topLayer:(lvl>crustThickness?B.stone:crustLayer)
+                lvl+=lodScale
+            }
+        }
+    }
+
+D.noiseProperties.octaves=2
+for(let bx=0;bx<16;bx++)
+    for(let bz=0;bz<16;bz++){
+        let x=(chunk.x+bx)*lodScale,z=(chunk.z+bz)*lodScale
+        doTree(x,z,0,0)
+        doTree(x,z,1,0)
+        doTree(x,z,-1,0)
+        doTree(x,z,0,1)
+        doTree(x,z,0,-1)
+        doTree(x,z,1,1)
+        doTree(x,z,1,-1)
+        doTree(x,z,-1,-1)
+        doTree(x,z,-1,1)
+    }
+
+let rr=-249158215,flood=[],currOre,fill=()=>{
+    let ind=getRand(rr+=5328,flood.length*14252,rr^124921)*flood.length|0,
+        f=flood[ind],
+        axis=getRand(rr+=57324,f[2]*481242,-5743604)*3|0,
+        dir=getRand(flood[1]*-94212,rr+=4128,(f[0]*412491)^381238)<0.5?-1:1
+    f[axis]+=dir
+    flood.push([f[0],f[1],f[2]])
+    if(f[0]>=0&&f[1]>=0&&f[2]>=0&&f[0]<16&&f[1]<256&&f[2]<16&&data[ind=posToInd(f[0],f[1],f[2])]===B.stone)
+        data[ind]=currOre
+    f[axis]-=dir
+}
+
+currOre=B.coalOre
+for(let i=0;i<5;i++){
+    let x=getRand(chunk.z^9428,i*-4129+4128,chunk.x^2418)*16|0,
+        z=getRand(chunk.x^32148,chunk.z^40912,rr-=i*3123)*16|0,
+        y=normalDist(chunk.x^481024,chunk.z^42471,rr+=i*5933,70,25)|0,
+        times=(getRand(rr+=5328,chunk.z^53289,chunk.x^2381)*15|0)+10
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.ironOre
+for(let i=0;i<5;i++){
+    let x=getRand(chunk.z^5328,rr+=(i*421)^3218,chunk.x^4823)*16|0,
+        z=getRand(chunk.x^2185,chunk.z^40912,rr-=i*4814)*16|0,
+        y=normalDist(chunk.x^54372,chunk.z^42471,rr+=i*5823,60,20)|0,
+        times=(getRand(rr+=5823,chunk.z^81294,chunk.x^30214)*6|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.goldOre
+for(let i=0;i<4;i++){
+    let x=getRand(rr+=(i*142)^8643,chunk.x^4823,chunk.z^4823)*16|0,
+        z=getRand(rr-=i*352,chunk.x^2185,chunk.z^31824)*16|0,
+        y=normalDist(chunk.x^54372,chunk.z^58342,rr+=i*3285,30,10)|0,
+        times=(getRand(rr+=5328,chunk.x^95328,chunk.z^523912)*5|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.lapisOre
+for(let i=0;i<4;i++){
+    let x=getRand(rr-=i*352,chunk.x^2185,chunk.z^13829)*16|0,
+        z=getRand(rr+=(i*583)^24312,chunk.x^50328,chunk.z^42184)*16|0,
+        y=normalDist(chunk.z^58233,chunk.x^58342,rr-=i*4218,23,10)|0,
+        times=(getRand(rr+=5328*i,chunk.z^4219,chunk.x^4218)*5|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.redstoneOre
+for(let i=0;i<4;i++){
+    let x=getRand(rr-=(i*92)^433,chunk.z^5824,chunk.x^4823)*16|0,
+        z=getRand(rr+=4129,chunk.x^2185,chunk.z^4281)*16|0,
+        y=normalDist(chunk.x^54372,chunk.z^58342,rr+=i*3285,12,9)|0,
+        times=(getRand(rr+=5120,chunk.x^42182,chunk.z^523912)*6|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.diamondOre
+for(let i=0;i<4;i++){
+    let x=getRand(chunk.z^81023,chunk.x^90421,rr-=(i*92)^433)*16|0,
+        z=getRand(chunk.x^2308,chunk.z^5328,rr+=i*421)*16|0,
+        y=normalDist(rr+=512*i*i,chunk.x^4291,chunk.z^5328,12,7)|0,
+        times=(getRand(rr-=4128*i,chunk.x^42802,chunk.z^13332)*6|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+currOre=B.emeraldOre
+for(let i=0;i<2;i++){
+    let x=getRand(chunk.z^53281,chunk.x^85322,rr-=(i*52)^521)*16|0,
+        z=getRand(chunk.x^53292,chunk.z^42148,rr+=i*421)*16|0,
+        y=normalDist(rr+=512*i,chunk.x^52184,chunk.z^4325,160,25)|0,
+        times=(getRand(rr-=132*i,chunk.x^4214,chunk.z^42184)*1.15|0)+1
+    flood=[[x,y,z]]
+    for(let j=0;j<times;j++)fill()
+}
+
+
+let size=lodScale,i=4
+
+for(let sx=0;sx<size;sx++)
+    for(let sz=0;sz<size;sz++){
+        let mods=DATA[i++]
+        
+        if(!mods)continue
+        
+        mods.forEach((id,key)=>{
+            let x=key&15,
+                y=key>>8,
+                z=(key>>4)&15
+            
+            x+=sx<<4
+            z+=sz<<4
+            data[posToInd(x*_lodScale|0,y*_lodScale|0,z*_lodScale|0)]=id
+        })
+    }
+
+
+self.postMessage(data)
+}
+
+
+</script>
+
+<script type>
+
+function main(FILE){
+
+CREATIVE=true
+WORLD_SEED=67
+SAVE_CODE=""
+    
+let width,height,halfWidth,halfHeight,aspect,dpr=devicePixelRatio,then,now,dt=0,time=0,frameCount=0,player,inWidth,inHeight
+
+let glCanvas=new OffscreenCanvas(1,1)
+let gl=D.getContext(glCanvas,)
+let ctx=uiCanvas.getContext('2d')
+let overlayCtx=overlay.getContext('2d')
+
+let aniso=gl.getExtension('EXT_texture_filter_anisotropic'),
+    timerQuery=gl.getExtension('EXT_disjoint_timer_query_webgl2')
+
+D.enable3D()
+D.enableBlend()
+
+function resize(){
+
+    inWidth=Math.max(innerWidth,1)
+    inHeight=Math.max(innerHeight,1)
+    width=inWidth*dpr
+    height=inHeight*dpr
+    halfWidth=width>>1
+    halfHeight=height>>1
+    
+    uiCanvas.width=width
+    uiCanvas.height=height
+    
+    overlay.width=inWidth
+    overlay.height=inHeight
+    
+    uiCanvas.style.width=inWidth+'px'
+    uiCanvas.style.height=inHeight+'px'
+    
+    glCanvas.width=width
+    glCanvas.height=height
+    
+    aspect=width/height
+    D.viewport(0,0,width,height)
+}
+resize()
+window.onresize=resize
+
+let SEED=WORLD_SEED,MODS=new Map()
+
+if(typeof SEED==='string'){
+    let s=SEED
+    SEED=0
+    for(let i=0;i<s.length;i++)
+        SEED^=s.codePointAt(i)*73
+    SEED=Math.imul(SEED,123456789)
+    SEED=Math.imul(SEED^1923123,23546798)
+}
+SEED%=100000
+
+
+{
+D.noiseProperties={octaves:2,decay:0.5,upsize:2}
+
+let H1=SEED,
+    H2=SEED,
+    H3=SEED,
+    H4=SEED,
+    H5=SEED,
+    H6=SEED
+
+D.Hash_1=(x)=>{
+    let n=(x^H1)*563.252342
+    return n-Math.floor(n)
+}
+D.Hash_2=(x,y)=>{
+    x^=H2
+    y^=H3
+    let n=(x*527.53851+y*439.522341-(x*y*257.611))*(x+y)*0.0012294+0.5
+    return n-Math.floor(n)
+}
+D.Hash_3=(x,y,z)=>{
+    x^=H4
+    y^=H5
+    z^=H6
+    let n=x*124.518+y*129.321+z*131.145-(x*y*100.836+z*201.51)
+    return n-Math.floor(n)
+}
+D.Smoothstep=(a,b,t)=>(b-a)*t*t*(3-(t+t))+a
+D.Noise1D_base=(x)=>{
+    let _x=Math.floor(x)
+    return D.Smoothstep(D.Hash_1(_x),D.Hash_1(_x+1),x-_x)
+}
+D.Noise2D_base=(x,y)=>{
+    let _x=Math.floor(x),_y=Math.floor(y),lt=D.Hash_2(_x,_y),lb=D.Hash_2(_x,_y+1),rt=D.Hash_2(_x+1,_y),rb=D.Hash_2(_x+1,_y+1),l=D.Smoothstep(lt,lb,y-_y),r=D.Smoothstep(rt,rb,y-_y)
+    return D.Smoothstep(l,r,x-_x)
+}
+D.Noise3D_base=(x,y,z)=>{
+    let _x=Math.floor(x),_y=Math.floor(y),_z=Math.floor(z),ltf=D.Hash_3(_x,_y,_z),rtf=D.Hash_3(_x+1,_y,_z),rbf=D.Hash_3(_x+1,_y+1,_z),rbb=D.Hash_3(_x+1,_y+1,_z+1),lbb=D.Hash_3(_x,_y+1,_z+1),ltb=D.Hash_3(_x,_y,_z+1),rtb=D.Hash_3(_x+1,_y,_z+1),lbf=D.Hash_3(_x,_y+1,_z),lt=D.Smoothstep(ltf,ltb,z-_z),lb=D.Smoothstep(lbf,lbb,z-_z),rt=D.Smoothstep(rtf,rtb,z-_z),rb=D.Smoothstep(rbf,rbb,z-_z),l=D.Smoothstep(lt,lb,y-_y),r=D.Smoothstep(rt,rb,y-_y)
+    
+    return D.Smoothstep(l,r,x-_x)
+}
+D.Noise1D=(x)=>{
+    let n=0,d=1,u=1,_x=x,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=D.Noise1D_base(_x)*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+    }
+    return n/(t)-0.5
+}
+D.Noise2D=(x,y)=>{
+    let n=0,d=1,u=1,_x=x,_y=y,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=(D.Noise2D_base(_x,_y)+D.Noise2D_base(_y*0.707107-_x*0.707107-100,_y*0.707107+_x*0.707107-100)+D.Noise2D_base(_y*-0.707107+_x*0.707107-200,_y*-0.707107-_x*0.707107-200))*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+        _y*=D.noiseProperties.upsize
+    }
+    return n/(t*3)-0.5
+}
+D.Noise3D=(x,y,z)=>{
+    let n=0,d=1,u=1,_x=x,_y=y,_z=z,t=0
+    for(let i=0;i<D.noiseProperties.octaves;i++){
+        n+=(D.Noise3D_base(_x,_y,_z)+D.Noise3D_base(_y*0.707107-_x*0.707107-100,_y*0.707107+_x*0.707107-100,_z-100)+D.Noise3D_base(_y*-0.707107+_x*0.707107-200,_y*-0.707107-_x*0.707107-200,_z-200))*d
+        t+=d
+        d*=D.noiseProperties.decay
+        _x*=D.noiseProperties.upsize
+        _y*=D.noiseProperties.upsize
+        _z*=D.noiseProperties.upsize
+    }
+    return n/(t*3)-0.5
+}
+}
+
+let iconProgram=D.createProgram(
+`#version 300 es
+
+precision highp float;
+    
+    in vec3 vertPos;
+    in vec4 vertUV;
+    
+    uniform mat4 viewMatrix;
+    
+    out vec4 pixUV;
+    out float pixBrightness;
+
+    void main(){
+        
+        gl_Position=viewMatrix*vec4(vertPos,1);
+        pixUV=vertUV;
+    }
+`,
+`#version 300 es
+
+precision highp float;
+precision highp sampler2DArray;
+    
+    uniform sampler2DArray tex;
+    uniform vec2 texSlice;
+    
+    in vec4 pixUV;
+    
+    out vec4 FragColor;
+    
+    void main(){
+        
+        FragColor=vec4(texture(tex,vec3(pixUV.xy,mix(texSlice.x,texSlice.y,pixUV.w))).rgb*pixUV.z,1);
+    }
+`,1)
+
+let meshProgram=D.createProgram(
+`#version 300 es
+
+precision highp float;
+    
+    in vec3 vertPos;
+    in vec3 vertUV;
+    in vec3 vertNormal;
+    in vec2 vertLight;
+    
+    uniform mat4 viewMatrix;
+    
+    out vec3 pixPos;
+    out vec3 pixUV;
+    out vec3 pixNormal;
+    flat out int pixTexture;
+    out float pixAO;
+    out vec2 pixLight;
+
+    void main(){
+        vec4 pos=viewMatrix*vec4(vertPos,1);
+        
+        pixPos=vertPos;
+        pixUV=vertUV;
+        pixNormal=vertNormal;
+        pixTexture=int(vertUV.z);
+        pixAO=fract(vertUV.z);
+        pixLight=vertLight/15.0;
+        gl_Position=pos;
+    }
+`,
+`#version 300 es
+
+precision highp float;
+precision highp sampler2DArray;
+    
+    uniform vec3 camPos;
+    uniform sampler2DArray tex;
+    
+    in vec3 pixPos;
+    in vec3 pixUV;
+    in vec3 pixNormal;
+    flat in int pixTexture;
+    in float pixAO;
+    in vec2 pixLight;
+    
+    out vec4 FragColor;
+    
+    vec3 lightDir=-normalize(vec3(1,-4,2));
+    
+    void main(){
+        
+        vec3 col=vec3(0);
+        
+        vec3 albedo=texture(tex,vec3(pixUV.xy,pixTexture)).rgb*pixAO;
+        
+        vec3 normal=pixNormal;
+        
+        float skyLight=pixLight.x;
+        float blockLight=pixLight.y;
+        
+        col+=albedo*vec3(0.35,0.4,0.45)*skyLight;
+        col+=albedo*(dot(normal,lightDir)*0.5+0.5)*vec3(1,1,1)*0.7*skyLight;
+        col+=albedo*vec3(1.1,0.85,0.53)*blockLight;
+        
+        FragColor=vec4(col,1);
+    }
+`,1)
+
+let modelProgram=D.createProgram(
+`#version 300 es
+
+precision highp float;
+    
+    in vec3 vertPos;
+    in vec3 vertUV;
+    in vec3 vertNormal;
+    
+    uniform mat4 viewMatrix;
+    uniform vec4 position;
+    uniform ivec3 texSlice;
+    
+    out vec3 pixPos;
+    out vec3 pixUV;
+    out vec3 pixNormal;
+    flat out int pixTexture;
+
+    void main(){
+        
+        float c=cos(position.w);
+        float s=sin(position.w);
+        
+        vec4 pos=viewMatrix*vec4(vec3(
+            vertPos.x*c-vertPos.z*s,
+            vertPos.y,
+            vertPos.x*s+vertPos.z*c
+        )+position.xyz,1);
+        
+        pixPos=vertPos;
+        pixUV=vertUV;
+        pixNormal=vertNormal;
+        pixTexture=texSlice[int(vertUV.z)];
+        gl_Position=pos;
+    }
+`,
+`#version 300 es
+
+precision highp float;
+precision highp sampler2DArray;
+    
+    uniform sampler2DArray tex;
+    uniform vec2 light;
+    
+    in vec3 pixPos;
+    in vec3 pixUV;
+    in vec3 pixNormal;
+    flat in int pixTexture;
+    
+    out vec4 FragColor;
+    
+    vec3 lightDir=-normalize(vec3(1,-4,2));
+    
+    void main(){
+        
+        vec3 col=vec3(0);
+        
+        vec3 albedo=texture(tex,vec3(pixUV.xy,pixTexture)).rgb;
+        
+        vec3 normal=pixNormal;
+        
+        float skyLight=light.x/15.0;
+        float blockLight=light.y/15.0;
+        
+        col+=albedo*vec3(0.35,0.4,0.45)*skyLight;
+        col+=albedo*(dot(normal,lightDir)*0.5+0.5)*vec3(1,1,1)*0.7*skyLight;
+        col+=albedo*vec3(1.1,0.85,0.53)*blockLight;
+        
+        FragColor=vec4(col,1);
+    }
+`,1)
+
+let shadowProgram=D.createProgram(
+`#version 300 es
+
+precision highp float;
+    
+    in vec3 vertPos;
+    
+    in vec3 
+    
+    uniform mat4 viewMatrix;
+    
+    out vec3 pixPos;
+    out vec3 pixUV;
+    out vec3 pixNormal;
+    flat out int pixTexture;
+
+    void main(){
+        
+        float c=cos(position.w);
+        float s=sin(position.w);
+        
+        vec4 pos=viewMatrix*vec4(vec3(
+            vertPos.x*c-vertPos.z*s,
+            vertPos.y,
+            vertPos.x*s+vertPos.z*c
+        )+position.xyz,1);
+        
+        pixPos=vertPos;
+        pixUV=vertUV;
+        pixNormal=vertNormal;
+        pixTexture=texSlice[int(vertUV.z)];
+        gl_Position=pos;
+    }
+`,
+`#version 300 es
+
+precision highp float;
+precision highp sampler2DArray;
+    
+    uniform sampler2DArray tex;
+    uniform vec2 light;
+    
+    in vec3 pixPos;
+    in vec3 pixUV;
+    in vec3 pixNormal;
+    flat in int pixTexture;
+    
+    out vec4 FragColor;
+    
+    vec3 lightDir=-normalize(vec3(1,-4,2));
+    
+    void main(){
+        
+        vec3 col=vec3(0);
+        
+        vec3 albedo=texture(tex,vec3(pixUV.xy,pixTexture)).rgb;
+        
+        vec3 normal=pixNormal;
+        
+        float skyLight=light.x/15.0;
+        float blockLight=light.y/15.0;
+        
+        col+=albedo*vec3(0.35,0.4,0.45)*skyLight;
+        col+=albedo*(dot(normal,lightDir)*0.5+0.5)*vec3(1,1,1)*0.7*skyLight;
+        col+=albedo*vec3(1.1,0.85,0.53)*blockLight;
+        
+        FragColor=vec4(col,1);
+    }
+`,1)
+
+D.useProgram(meshProgram)
+
+
+let keys={}
+document.onkeydown=(e)=>{
+    let key=e.key.toLowerCase(),
+        alr=keys[key]
+    keys[key]=1
+    
+    
+    let i=player.hotbarFocus+27
+    if(key==='q' && player.inventory[i] && !player.menu){
+        let n=--player.inventoryCounts[i]
+        player.ejectItem(player.inventory[i],1)
+        if(n<=0)
+            player.inventory[i]=0
+        player.drawHotbar()
+    }
+    
+    
+    if(key==='j')
+        player.placeBlock()
+        
+    if(key==='k')
+        player.destroyBlock()
+    
+    if(alr)return
+    
+    let num=key-0
+    if(!num){
+        num='!@#$%^&*()'.indexOf(key)
+        if(num<0)
+            num=false
+        else
+            num=(num+1)%10
+    }
+    if(num>=1&&num<=9)
+        player.setHotbarFocus(num-1)
+    
+    if(key==='e'){
+        if(player.menu)
+            player.menu=false
+        else
+            player.menu=invMenu
+        player.runInventory()
+    }
+
+    if(key==='escape'){
+        player.menu=false
+        player.runInventory()
+    }
+    
+    if(key==='p'){
+        exporter.style.display='block'
+        exporterText.textContent=EXPORT_FILE()
+        exporterDone.onclick=()=>exporter.style.display='none'
+    }
+    
+    if(key==='f')player.creative=!player.creative
+}
+document.onkeyup=(e)=>keys[e.key.toLowerCase()]=0
+
+uiCanvas.onmousedown=(e)=>{
+    uiCanvas.requestPointerLock()
+    
+    if(e.button==2)
+        player.placeBlock()
+    else
+        player.destroyBlock()
+}
+
+
+let yaw=0,
+    pitch=0,
+    sensitivity=0.005
+
+uiCanvas.onmousemove=(e)=>{
+    yaw+=e.movementX*sensitivity
+    pitch=D.constrain(pitch+e.movementY*sensitivity,-D.HALF_PI,D.HALF_PI)
+}
+
+
+let tileSize=128,
+    layers=32
+
+let tex=(function(){
+    
+    let texs=[
+        (x,y)=>{//grass top
+            let v=D.Noise2D(x*30,y*30)+1,yellow=(D.Noise2D(x*40,y*40+1290))*100
+            return [60*v+yellow,150*v+yellow,50*v,255]
+        },
+        (x,y)=>{
+            //grass side
+            let curve=Math.abs(x-0.5)*2
+            curve*=curve
+            let level=D.lerp((D.Noise1D(x*4)+0.5)*0.2+0.6,0.7,curve)+(D.Noise2D(y*50,x*50)+0.5)*0.5-0.25
+            if(y>level){
+                let v=D.Noise2D(x*30,y*30)+1,yellow=(D.Noise2D(x*40,y*40+1290))*100
+                return [60*v+yellow,150*v+yellow,50*v,255]
+            }else{
+                let v=D.Noise2D(x*30,y*30)+0.9
+                v+=Math.tan(v)%0.5
+                v-=0.1
+                if(D.Noise2D(x*40+999,y*40)+0.5<0.36){
+                    v=D.Noise2D(y*400,x*400-1000)*300
+                    return [130+v,100+v,90+v]
+                }
+                return [110*v,80*v,30*v,255]
+            }
+        },
+        (x,y)=>{//dirt
+            let v=D.Noise2D(x*30,y*30)+0.9
+            v+=Math.tan(v)%0.5
+            v-=0.1
+            if(D.Noise2D(x*40+999,y*40)+0.5<0.36){
+                v=D.Noise2D(y*400,x*400-1000)*300
+                return [130+v,100+v,90+v]
+            }
+            return [110*v,80*v,30*v,255]
+        },
+        (x,y)=>{//stone
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v*=v
+            v=Math.round(v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//sand
+            let w=D.Noise2D(x*30-10,y*30)+0.5
+            w*=w*w*w
+            w*=250
+            let v=D.Noise2D(y*70,x*70+100)+0.5
+            v=v*v
+            v=1-v*0.5
+            return [255*v+w,225*v+w,150*v+w,255]
+        },
+        (x,y)=>{//smooth sandstone top
+            let w=D.Noise2D(x*10-10,y*10)+0.5
+            w*=w*w*w
+            w*=250*0.25
+            let v=D.Noise2D(y*20,x*20+100)+0.5
+            v=v*v
+            v=1-v*0.15
+            return [255*v+w,225*v+w,150*v+w,255]
+        },
+        (x,y)=>{//sandstone
+            let w=D.Noise2D(x*30-10,y*30)+0.5
+            w*=w*w*w
+            w*=250
+            let v=D.Noise2D(x*7,y*10-100)+D.Noise2D(x*6-100,y*4+100)*0.5
+            v=Math.abs(v)<0.05?1-Math.sin(v*100)*0.3:0
+            let lvl=0.83+D.Noise1D(x*20-100)*0.05
+            v=Math.abs(y-lvl)<0.03?1.1:(y>lvl?0:v)
+            v=1-v*0.35
+            if(y>lvl)
+                w*=0.25
+            return [255*v+w,225*v+w,150*v+w,255]
+        },
+        (x,y)=>{//log top
+            x-=0.5
+            y-=0.5
+            let t=Math.atan2(x,y),
+                r=D.Noise1D(Math.sin(t)*6)*0.04+0.45,
+                d=x*x*x*x+y*y*y*y,
+                _d=Math.sqrt(x*x+y*y)
+            
+            if(d>r*r*r*r+D.Noise2D(x*70,y*70)*0.03){
+                let v=D.Noise2D(r*10,t*10)*0.7+0.9
+                v=Math.floor(v*v*6)/6
+                return [120*Math.pow(v,0.9),90*v,40*Math.pow(v,1.1),255]
+            }
+            let v=1-(Math.sin((_d*r)*90)+1)*0.5
+            v=1-(v*v*v)
+            v=1-(1-v)*0.3
+            v*=D.Noise2D(x*10+100,y*10)*0.4+0.9
+            
+            return [250*Math.pow(v,0.9),220*v,100*Math.pow(v,1.1),255]
+        },
+        (x,y)=>{//log sides
+            let v=D.Noise2D(x*30,y*10)*0.7+0.9
+            v=Math.floor(v*v*6)/6
+            return [120*Math.pow(v,0.9),90*v,40*Math.pow(v,1.1),255]
+        },
+        (x,y)=>{//leaves
+            let v=D.Noise2D(y*20,x*20)*1.4+0.1
+            v=Math.floor(v*5)/5
+            v=1-v
+            return [20*v,70*v,10*v,255]
+        },
+        (x,y)=>{//glowstone
+            let v=Math.sin(D.Noise2D(y*25,x*25)*9)
+            v*=v
+            let v2=Math.sin(D.Noise2D(y*10,x*10)*9)
+            v=v2*v2+v*0.4-0.2
+            v*=v
+            return [205*v+50,160*v+30,120*v*v*v+10,255]
+        },
+        (x,y)=>{//water
+            let v=D.Noise3D(y*20,x*20,D.Noise2D(x*20-100,y*20)*10)*1.4+0.1
+            v=1-v
+            v*=v
+            return [20*v+20,20*v+50,140*v+80,255]
+        },
+        (x,y)=>{//snow top
+            let v=D.Noise2D(x*30,y*30)*0.+1,yellow=(D.Noise2D(x*40,y*40+1290))*60
+            return [230+yellow,230+yellow,230,255]
+        },
+        (x,y)=>{
+            //snow side
+            let curve=Math.abs(x-0.5)*2
+            curve*=curve
+            let level=D.lerp((D.Noise1D(x*4)+0.5)*0.2+0.6,0.7,curve)+(D.Noise2D(y*50,x*50)+0.5)*0.5-0.25
+            if(y>level){
+                let v=D.Noise2D(x*30,y*30)*0.+1,yellow=(D.Noise2D(x*40,y*40+1290))*60
+                return [230+yellow,230+yellow,230,255]
+            }else{
+                let v=D.Noise2D(x*30,y*30)+0.9
+                v+=Math.tan(v)%0.5
+                v-=0.1
+                if(D.Noise2D(x*40+999,y*40)+0.5<0.36){
+                    v=D.Noise2D(y*400,x*400-1000)*300
+                    return [130+v,100+v,90+v]
+                }
+                return [110*v,80*v,30*v,255]
+            }
+        },
+        (x,y)=>{//planks
+            let s=5
+            x*=512/s
+            y*=512/s
+            let _t=y
+            y=x
+            x=_t
+            let v=1-(((((x*0.5+0.5|0)%20)&&((y*0.5+42|0)%((44+(Math.sin(107.1*(((x*0.5)/20)|0)*85)+1)*78|0)))?D.Noise2D(D.Noise1D(y*0.06*s,x*0.06*s)+x*-0.05*s,x*0.06*s+(x*0.5*s/20|0)*20)*200+20:90))/255)
+            
+            return [230*v,200*v,90*v,255]
+        },
+        (x,y)=>{//crafting table top
+        
+            for(let i=-1;i<=1;i++)
+                for(let j=-1;j<=1;j++){
+                    if(Math.abs(Math.max(Math.abs(x-0.5+i*0.2),Math.abs(y-0.5+j*0.2))-0.1)<0.017)
+                        return [140*0.4,80*0.4,40*0.4,255]
+                }
+                
+            if(Math.abs(x-0.5)+Math.abs(y-0.5)<0.7)
+                return [140,80,40,255]
+            
+            if(x<0.05 || x>0.95 || y<0.05 || y>0.95)
+                return [80*0.9,50*0.9,20*0.9,255]
+            
+            let s=5
+            x*=512/s
+            y*=512/s
+            let _t=y
+            y=x
+            x=_t
+            let v=1-(((((x*0.5+0.5|0)%20)&&((y*0.5+42|0)%((44+(Math.sin(107.1*(((x*0.5)/20)|0)*85)+1)*78|0)))?D.Noise2D(D.Noise1D(y*0.06*s,x*0.06*s)+x*-0.05*s,x*0.06*s+(x*0.5*s/20|0)*20)*200+20:90))/255)
+            
+            return [230*v,200*v,90*v,255]
+        },
+        (x,y)=>{//crafting table side
+            
+            if(Math.abs(x-0.5)+Math.abs(1-y)*1.2<0.2)
+                return [140,80,40,255]
+                
+            if(x<0.05 || x>0.95 || Math.abs(x-0.5)<0.05)
+                return [80,50,20,255]
+                
+            if(Math.abs(x-0.25)<0.03 && Math.abs(y-0.6)<0.15 || Math.abs(Math.max(Math.abs(x-0.75),Math.abs(y-0.7))-0.054)<0.02)
+                return [60,40,13,255]
+            if(Math.abs(x-0.25)<0.1 && Math.abs(y-0.4)<0.05 || y<0.625 && x>0.65-(y-0.6)*0.5 && x<0.85)
+                return [255,255,255,255]
+                
+            let s=5
+            x*=512/s
+            y*=512/s
+            let _t=y
+            y=x
+            x=_t
+            let v=1-(((((x*0.5+0.5|0)%20)&&((y*0.5+42|0)%((44+(Math.sin(107.1*(((x*0.5)/20)|0)*85)+1)*78|0)))?D.Noise2D(D.Noise1D(y*0.06*s,x*0.06*s)+x*-0.05*s,x*0.06*s+(x*0.5*s/20|0)*20)*200+20:90))/255)
+            
+            return [230*v,200*v,90*v,255]
+        },
+        (x,y)=>{//bedrock
+            let v=D.Noise2D(y*20,x*20)*3+0.2
+            v=Math.floor(v*5)/5
+            v=(v+100)%1
+            return [255*v,255*v,255*v,255]
+        },
+        (x,y)=>{//coal ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                return [50,50,50]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//iron ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                return [240,180,150]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//gold ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                if(D.Noise2D(x*20,y*40+100)>0.15)
+                    return [255,255,255]
+                else
+                    return [255,210,10]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//lapis ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                return [20,40,220]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//redstone ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                return [210,0,0]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//diamond ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                if(D.Noise2D(x*20,y*40+100)>0.15)
+                    return [255,255,255]
+                else
+                    return [130,220,255]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+        (x,y)=>{//emerald ore
+            if(D.Noise2D(x*7.5,y*15)>0.08)
+                if(D.Noise2D(x*20,y*40+100)>0.15)
+                    return [255,255,255]
+                else
+                    return [30,200,60]
+            let v=(D.Noise2D(x*30,y*30)+0.5)*0.4+0.9
+            v=Math.round(v*v*7)/7
+            return [100*v,100*v,100*v,255]
+        },
+    ]
+    
+    
+    let T=gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY,T)
+    
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY,Math.floor(Math.log2(tileSize))+1,gl.RGBA8,tileSize,tileSize,layers)
+    
+    let data=new Uint8ClampedArray((tileSize*tileSize)<<2),inv_h=1/tileSize
+    
+    for(let t=0;t<texs.length;t++){
+        let f=texs[t]
+        for(let i=0,l=data.length;i<l;i+=4){
+            let x=(i>>2)%tileSize,y=(i>>2)*inv_h|0
+            let c=f(x*inv_h,y*inv_h)
+            data[i]=c[0]
+            data[i+1]=c[1]
+            data[i+2]=c[2]
+            data[i+3]=c[3]
+        }
+        gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,t,tileSize,tileSize,1,gl.RGBA,gl.UNSIGNED_BYTE,data)
+    }
+    
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MAG_FILTER,gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_WRAP_S,gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_WRAP_T,gl.REPEAT)
+    gl.generateMipmap(gl.TEXTURE_2D_ARRAY)
+    
+    if(aniso)
+        gl.texParameterf(gl.TEXTURE_2D_ARRAY,aniso.TEXTURE_MAX_ANISOTROPY_EXT,gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT))
+    
+    return T
+})()
+
+//[id, topTex,sideTex,bottomTex, lightLvl]
+let blocks={
+    air:[0,0,0],
+    grass:[0,1,2],
+    dirt:[2,2,2],
+    stone:[3,3,3],
+    sand:[4,4,4],
+    sandstone:[5,6,5],
+    log:[7,8,7],
+    leaves:[9,9,9],
+    glowstone:[10,10,10],
+    water:[11,11,11],
+    snow:[12,13,2],
+    planks:[14,14,14],
+    craftingTable:[15,16,14],
+    bedrock:[17,17,17],
+    coalOre:[18,18,18],
+    ironOre:[19,19,19],
+    goldOre:[20,20,20],
+    lapisOre:[21,21,21],
+    redstoneOre:[22,22,22],
+    diamondOre:[23,23,23],
+    emeraldOre:[24,24,24],
+},
+    items={},
+    itemPlaceable=[],
+    B=blocks,
+    
+    textureSlice=[],
+    id=0,
+    blockLightLevels=[],
+    blockTrans=[]
+
+for(let i in blocks){
+    let b=blocks[i]
+    textureSlice.push(b[0],b[1],b[2])
+    items[i]=id
+    itemPlaceable.push(id>0)
+    blocks[i]=id
+    id++
+    
+    blockLightLevels.push(0)
+    blockTrans.push(false)
+}
+
+
+blockLightLevels[B.glowstone]=15
+blockTrans[B.air]=true
+blockTrans[B.water]=true
+
+
+
+
+let itemSprites=[]
+
+{
+    let size=Math.min(inWidth,inHeight)*0.06
+    
+    overlayCtx.textAlign='right'
+    overlayCtx.font=(size*0.45|0)+'px monospace'
+    overlayCtx.strokeStyle='black'
+    overlayCtx.fillStyle='white'
+    overlayCtx.lineWidth=2
+    
+    D.viewport(0,0,size,size)
+    D.useProgram(iconProgram)
+    gl.clearColor(0,0,0,0)
+    
+    let proj=D.perspectiveMatrix(10,1,0.1,50),
+        view=D.createIdentityMatrix()
+    D.setViewMatrix(view,proj,0,0,0,-0.6,0.6,22)
+    D.setUniform('viewMatrix',view)
+    
+    let buffer=gl.createBuffer(),b=1
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER,buffer)
+    gl.bufferData(gl.ARRAY_BUFFER,Float32Array.from([
+        1,1,1, 0,1,b=0.5,1,
+        1,1,-1, 1,1,b,1,
+        1,-1,-1, 1,0,b,1,
+        1,-1,1, 0,0,b,1,
+        -1,1,1, 0,1,b=0.8,1,
+        1,1,1, 1,1,b,1,
+        1,-1,1, 1,0,b,1,
+        -1,-1,1, 0,0,b,1,
+        -1,1,-1, 0,1,b=1,0,
+        1,1,-1, 1,1,b,0,
+        1,1,1, 1,0,b,0,
+        -1,1,1, 0,0,b,0
+    ]),gl.STATIC_DRAW)
+    gl.vertexAttribPointer(0,3,gl.FLOAT,false,28,0)
+    gl.vertexAttribPointer(1,4,gl.FLOAT,false,28,12)
+    gl.enableVertexAttribArray(0)
+    gl.enableVertexAttribArray(1)
+    gl.disableVertexAttribArray(2)
+    gl.disableVertexAttribArray(3)
+    let indBuffer=gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,indBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,Uint16Array.from([
+        2,1,0, 0,3,2,
+        6,5,4, 4,7,6,
+        10,9,8, 8,11,10
+    ]),gl.STATIC_DRAW)
+    
+    overlayCtx.imageSmoothingEnabled=false
+    
+    let emptySprite=overlayCtx.getImageData(0,0,1,1)
+    
+    for(let i in items){
+        let itemId=items[i]
+        if(!itemPlaceable[itemId]){
+            itemSprites.push(emptySprite)
+            continue
+        }
+        
+        gl.clear(16640)
+        
+        D.setUniform('texSlice',[textureSlice[itemId*3],textureSlice[itemId*3+1]])
+        gl.drawElements(gl.TRIANGLES,18,gl.UNSIGNED_SHORT,0)
+        
+        
+        overlayCtx.clearRect(0,0,size,size)
+        overlayCtx.drawImage(glCanvas,0,height-size,size,size,0,0,size,size)
+        itemSprites.push(overlayCtx.getImageData(0,0,size,size))
+    }
+    overlayCtx.clearRect(0,0,width,height)
+    gl.enableVertexAttribArray(2)
+    gl.enableVertexAttribArray(3)
+    gl.deleteBuffer(buffer)
+    gl.deleteBuffer(indBuffer)
+    gl.deleteProgram(iconProgram.gl)
+    D.useProgram(meshProgram)
+    D.viewport(0,0,width,height)
+}
+
+let doCollisionX=(p,dx)=>{
+        
+        if(Math.abs(dx)<0.0001)return
+        
+        let newX=p.x+dx,
+            w=p.width,h=p.height
+        
+        if(dx>0){
+            let bx=Math.round(newX+w),
+                minY=Math.round(p.y+0.001),
+                maxY=Math.round(p.y+h-0.001),
+                minZ=Math.round(p.z-w),
+                maxZ=Math.round(p.z+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(bx,y,z)){
+                        p.vx=0
+                        p.x=bx-0.5001-w
+                        return
+                    }
+        }else{
+            let bx=Math.round(newX-w),
+                minY=Math.round(p.y+0.001),
+                maxY=Math.round(p.y+h-0.001),
+                minZ=Math.round(p.z-w),
+                maxZ=Math.round(p.z+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(bx,y,z)){
+                        p.vx=0
+                        p.x=bx+0.501+w
+                        return
+                    }
+        }
+        p.x=newX
+    },
+    doCollisionZ=(p,dx)=>{
+        
+        if(Math.abs(dx)<0.0001)return
+        
+        let newX=p.z+dx,
+            w=p.width,h=p.height
+        
+        if(dx>0){
+            let bx=Math.round(newX+w),
+                minY=Math.round(p.y+0.001),
+                maxY=Math.round(p.y+h-0.001),
+                minZ=Math.round(p.x-w),
+                maxZ=Math.round(p.x+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(z,y,bx)){
+                        p.vz=0
+                        p.z=bx-0.5001-w
+                        return
+                    }
+        }else{
+            let bx=Math.round(newX-w),
+                minY=Math.round(p.y+0.001),
+                maxY=Math.round(p.y+h-0.001),
+                minZ=Math.round(p.x-w),
+                maxZ=Math.round(p.x+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(z,y,bx)){
+                        p.vz=0
+                        p.z=bx+0.5001+w
+                        return
+                    }
+        }
+        p.z=newX
+    },
+    doCollisionY=(p,dx)=>{
+        
+        if(Math.abs(dx)<0.0001)
+            return
+        
+        let newX=p.y+dx,
+            w=p.width,h=p.height
+        
+        if(dx>0){
+            let bx=Math.round(newX+h),
+                minY=Math.round(p.z-w),
+                maxY=Math.round(p.z+w),
+                minZ=Math.round(p.x-w),
+                maxZ=Math.round(p.x+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(z,bx,y)){
+                        p.vy=0
+                        p.y=bx-0.5001-h
+                        return
+                    }
+        }else{
+            p.grounded=false
+            let bx=Math.round(newX),
+                minY=Math.round(p.z-w),
+                maxY=Math.round(p.z+w),
+                minZ=Math.round(p.x-w),
+                maxZ=Math.round(p.x+w)
+                
+            for(let y=minY;y<=maxY;y++)
+                for(let z=minZ;z<=maxZ;z++)
+                    if(getBlock(z,bx,y)){
+                        p.vy=0
+                        p.y=bx+0.5001
+                        p.grounded=true
+                        return
+                    }
+        }
+        p.y=newX
+    }
+
+let hotbarSlots=document.getElementsByClassName('hotbarSlot'),
+    invSlots=document.getElementsByClassName('invSlot'),
+    menus=document.getElementsByClassName('menuType'),
+    inSlots,outSlot
+
+for(let i=0;i<9;i++)
+    hotbarSlots[i].onmousedown=()=>player.setHotbarFocus(i)
+
+document.body.oncontextmenu=(e)=>e.preventDefault()
+
+
+let invRecipes=[
+    
+    [B.log],B.planks,4,
+    [0,B.log],B.planks,4,
+    [0,0,B.log],B.planks,4,
+    [0,0,0,B.log],B.planks,4,
+    [B.planks,B.planks,B.planks,B.planks],B.craftingTable,1
+],recipes=[
+    
+    
+]
+
+for(let i=0;i<invRecipes.length;i+=3){
+    let r=invRecipes[i]
+    for(let j=0;j<4;j++)
+        invRecipes[i][j]??=0
+    recipes.push([r[0],r[1],0,r[2],r[3]],invRecipes[i+1],invRecipes[i+2])
+    recipes.push([0,r[0],r[1],0,r[2],r[3]],invRecipes[i+1],invRecipes[i+2])
+    recipes.push([0,0,0,r[0],r[1],0,r[2],r[3]],invRecipes[i+1],invRecipes[i+2])
+    recipes.push([0,0,0,0,r[0],r[1],0,r[2],r[3]],invRecipes[i+1],invRecipes[i+2])
+}
+for(let i=0;i<recipes.length;i+=3)
+    for(let j=0;j<9;j++)
+        recipes[i][j]??=0
+
+
+player=((player={})=>{
+    
+    player.creative=CREATIVE
+    
+    player.x=0
+    player.y=player.creative?64:128
+    player.z=0
+    player.vx=0
+    player.vy=0
+    player.vz=0
+    player.lastSnappedX=0
+    player.lastSnappedZ=0
+    
+    player.eyes=1.62
+    player.width=0.3
+    player.height=1.8
+    
+    
+    player.hotbarFocus=0
+    player.inventory=new Uint16Array(4*9)
+    player.inventoryCounts=new Uint8Array(4*9)
+    
+    player.crafting=new Uint16Array(9)
+    player.craftingCounts=new Uint8Array(9)
+    player.crafted=0
+    player.craftedCount=0
+    
+    let j=0
+    for(let i in blocks){
+        if(blocks[i]){
+            player.inventory[++j]=blocks[i]
+            player.inventoryCounts[j]=64
+        }
+    }
+    
+    player.setHotbarFocus=(n)=>{
+        hotbarSlots[player.hotbarFocus].style.outline='4px solid rgb(130,130,130)'
+        hotbarSlots[player.hotbarFocus].style.zIndex='1'
+        hotbarSlots[player.hotbarFocus=n].style.outline='6px solid rgb(230,230,230)'
+        hotbarSlots[player.hotbarFocus].style.zIndex='2'
+    }
+    player.setHotbarFocus(0)
+    
+    player.menu=false
+    
+    player.drawInventory=()=>{
+        overlayCtx.clearRect(0,0,inWidth,inHeight)
+        
+        let rect=invSlots[0].getBoundingClientRect(),
+            rect2=invSlots[1].getBoundingClientRect(),
+            x=rect.x,y=rect.y,w=rect2.x-x
+        
+        for(let j=0;j<4;j++){
+            if(j===3)
+                y=invSlots[27].getBoundingClientRect().y
+                
+            for(let i=0;i<9;i++){
+                overlayCtx.putImageData(itemSprites[player.inventory[j*9+i]],x+w*i,y)
+                let count=player.inventoryCounts[j*9+i]
+                if(count){
+                    overlayCtx.strokeText(count,x+w*i+w*0.8375,y+w*0.8825)
+                    overlayCtx.fillText(count,x+w*i+w*0.8,y+w*0.85)
+                }
+            }
+            y+=w
+        }
+        if(player.menu===invMenu){
+            x=inSlots[0].getBoundingClientRect().x
+            for(let j=0;j<2;j++){
+                y=inSlots[j*2].getBoundingClientRect().y
+                
+                for(let i=0;i<2;i++){
+                    overlayCtx.putImageData(itemSprites[player.crafting[j*2+i]],x+w*i,y)
+                    let count=player.craftingCounts[j*2+i]
+                    if(count){
+                        overlayCtx.strokeText(count,x+w*i+w*0.8375,y+w*0.8825)
+                        overlayCtx.fillText(count,x+w*i+w*0.8,y+w*0.85)
+                    }
+                }
+                y+=w
+            }
+        }else{
+            x=inSlots[0].getBoundingClientRect().x
+            for(let j=0;j<3;j++){
+                y=inSlots[j*3].getBoundingClientRect().y
+                
+                for(let i=0;i<3;i++){
+                    overlayCtx.putImageData(itemSprites[player.crafting[j*3+i]],x+w*i,y)
+                    let count=player.craftingCounts[j*3+i]
+                    if(count){
+                        overlayCtx.strokeText(count,x+w*i+w*0.8375,y+w*0.8825)
+                        overlayCtx.fillText(count,x+w*i+w*0.8,y+w*0.85)
+                    }
+                }
+                y+=w
+            }
+        }
+        rect=outSlot.getBoundingClientRect()
+        x=rect.x
+        y=rect.y
+        overlayCtx.putImageData(itemSprites[player.crafted],x,y)
+        let count=player.craftedCount
+        if(count){
+            overlayCtx.strokeText(count,x+w*0.8375,y+w*0.8825)
+            overlayCtx.fillText(count,x+w*0.8,y+w*0.85)
+        }
+    }
+    
+    let draggingIcon=false
+    player.setHoldingIcon=(mouseX=-100,mouseY=-100)=>{
+        let id=player.holding,count=player.holdingCount
+        if(draggingIcon || !player.holding)player.removeHoldingIcon()
+        if(!player.holding)return
+        
+        let size=Math.min(inWidth,inHeight)*0.06,
+            offsetX=-size*0.3,offsetY=-size*0.6
+        
+        draggingIcon=document.createElement('canvas')
+        draggingIcon.style=`position:fixed;left:${mouseX+offsetX}px;top:${mouseY+offsetY}px;width:${size}px;height:${size}px;z-index:6;pointer-events:none`
+        draggingIcon.width=size
+        draggingIcon.height=size
+        document.body.appendChild(draggingIcon)
+        
+        inventoryMenu.onmousemove=(e)=>{
+            if(!draggingIcon)return
+            draggingIcon.style.left=(e.clientX+offsetX)+'px'
+            draggingIcon.style.top=(e.clientY+offsetY)+'px'
+        }
+        
+        let _ctx=draggingIcon.getContext('2d')
+        _ctx.textAlign='right'
+        _ctx.font=(size*0.45|0)+'px monospace'
+        _ctx.strokeStyle='black'
+        _ctx.fillStyle='white'
+        _ctx.lineWidth=2
+        _ctx.putImageData(itemSprites[id],0,0)
+        
+        let w=size
+        _ctx.fillText(count,w*0.8,w*0.85)
+        _ctx.strokeText(count,w*0.8375,w*0.8825)
+        _ctx.fillText(count,w*0.8,w*0.85)
+    }
+    player.removeHoldingIcon=()=>{
+        if(draggingIcon)
+            document.body.removeChild(draggingIcon)
+        draggingIcon=false
+    }
+    
+    player.runCrafts=()=>{
+        player.crafted=0
+        player.craftedCount=0
+        
+        let crafting=player.crafting
+        
+        if(player.menu===invMenu){
+            for(let j=0;j<invRecipes.length;j+=3){
+                let r=invRecipes[j],c=player.craftingCounts
+                if(r[0]===crafting[0]&&r[1]===crafting[1]&&r[2]===crafting[2]&&r[3]===crafting[3]){
+                    player.crafted=invRecipes[j+1]
+                    player.craftedCount=invRecipes[j+2]
+                    return
+                }
+            }
+        }else{
+            for(let j=0;j<recipes.length;j+=3){
+                let r=recipes[j],c=player.craftingCounts
+                if(r[0]===crafting[0]&&r[1]===crafting[1]&&r[2]===crafting[2]&&r[3]===crafting[3]&&r[4]===crafting[4]&&r[5]===crafting[5]&&r[6]===crafting[6]&&r[7]===crafting[7]&&r[8]===crafting[8]){
+                    player.crafted=recipes[j+1]
+                    player.craftedCount=recipes[j+2]
+                    return
+                }
+            }
+        }
+    }
+    player.runInventory=()=>{
+        
+        inventoryMenu.style.display=player.menu?(document.exitPointerLock(),'block'):(uiCanvas.requestPointerLock(),'none')
+        
+        for(let i=0;i<menus.length;i++)menus[i].style.display='none'
+        player.crafted=0
+        player.craftedCount=0
+        
+        if(player.menu){
+            
+            inSlots=player.menu.getElementsByClassName('inSlot')
+            outSlot=player.menu.getElementsByClassName('outSlot')[0]
+            player.menu.style.display='block'
+            player.drawInventory()
+            
+            for(let I=0;I<36+inSlots.length;I++){
+                let i=I%36,
+                    elem=I>=36?inSlots[i]:invSlots[i]
+                elem.onmousedown=(e)=>{
+                    
+                    let inventory=I>=36?player.crafting:player.inventory,
+                        inventoryCounts=I>=36?player.craftingCounts:player.inventoryCounts
+                    let left=e.button===0
+                    
+                    if(player.holding){
+                        if(left){
+                            if(inventory[i]===player.holding){
+                                inventoryCounts[i]+=player.holdingCount
+                                player.holding=0
+                                player.holdingCount=0
+                                player.removeHoldingIcon()
+                            }else{
+                                let inv=inventory[i],invCo=inventoryCounts[i]
+                                inventory[i]=player.holding
+                                inventoryCounts[i]=player.holdingCount
+                                player.holding=inv
+                                player.holdingCount=invCo
+                                if(!player.holding)
+                                    player.removeHoldingIcon()
+                                else
+                                    player.setHoldingIcon(e.clientX,e.clientY)
+                            }
+                        }else if(!inventory[i] || inventory[i]===player.holding){
+                            inventory[i]=player.holding
+                            inventoryCounts[i]++
+                            player.holdingCount--
+                            
+                            if(player.holdingCount<=0){
+                                player.holding=0
+                                player.removeHoldingIcon()
+                            }else
+                                player.setHoldingIcon(e.clientX,e.clientY)
+                        }
+                        
+                    }else{
+                        if(!inventory[i])return
+                        
+                        if(left){
+                            if(keys.shift){
+                                let t=inventory[i],
+                                    c=inventoryCounts[i]
+                                    inventory[i]=0
+                                    inventoryCounts[i]=0
+                                    player.distributeToInventory(t,c)
+                            }else{
+                                player.holding=inventory[i]
+                                player.holdingCount=inventoryCounts[i]
+                                inventory[i]=0
+                                inventoryCounts[i]=0
+                            }
+                        }else{
+                            let split=Math.ceil(inventoryCounts[i]*0.5)
+                            player.holding=inventory[i]
+                            player.holdingCount=split
+                            inventoryCounts[i]-=split
+                            if(inventoryCounts[i]<=0){
+                                inventory[i]=0
+                                inventoryCounts[i]=0
+                            }
+                        }
+                        player.setHoldingIcon(e.clientX,e.clientY)
+                        
+                    }
+                    
+                    if(I>=36)player.runCrafts()
+                    
+                    player.drawInventory()
+                }
+            }
+            
+            if(outSlot)
+                outSlot.onmousedown=(e)=>{
+                    let left=e.button===0
+                    
+                    if(!player.crafted)return
+                    
+                    if(keys.shift){
+                        
+                        let enough=1e9
+                        for(let i=0;i<9;i++)
+                            if(player.crafting[i])
+                                enough=Math.min(enough,player.craftingCounts[i])
+                        
+                        for(let i=0;i<9;i++)
+                            if(player.crafting[i])
+                                if((player.craftingCounts[i]-=enough)<=0)
+                                    player.crafting[i]=0
+                            
+                        player.distributeToInventory(player.crafted,player.craftedCount*enough)
+                    }else if(!player.holding || player.holding===player.crafted){
+                        player.holding=player.crafted
+                        player.holdingCount+=player.craftedCount
+                        for(let i=0;i<9;i++)
+                            if(player.crafting[i])
+                                if((--player.craftingCounts[i])<=0)
+                                    player.crafting[i]=0
+                        player.setHoldingIcon(e.clientX,e.clientY)
+                    }
+                    
+                    player.runCrafts()
+                    player.drawInventory()
+                }
+            
+            inventoryMenu.onmousedown=(e)=>{
+                if(!player.holding)return
+                
+                let rect=inventoryBox.getBoundingClientRect(),
+                    x=rect.x,
+                    y=rect.y,
+                    w=rect.width,
+                    h=rect.height
+                
+                if(e.clientX<x-10||e.clientX>x+w+10||e.clientY<y-10||e.clientY>y+h+10){
+                    player.ejectItem(player.holding,player.holdingCount)
+                    player.holding=0
+                    player.holdingCount=0
+                    player.removeHoldingIcon()
+                }
+            }
+            
+        }else{
+            if(player.holding){
+                player.distributeToInventory(player.holding,player.holdingCount)
+                player.removeHoldingIcon()
+                player.holding=0
+                player.holdingCount=0
+            }
+            for(let i=0;i<9;i++){
+                if(player.crafting[i]){
+                    player.distributeToInventory(player.crafting[i],player.craftingCounts[i])
+                }
+            }
+            player.crafting.fill(0)
+            player.craftingCounts.fill(0)
+            player.drawHotbar()
+        }
+    }
+    
+    player.drawHotbar=(singular)=>{
+        
+        let rect=hotbarSlots[0].getBoundingClientRect(),
+            x=rect.x,y=rect.y,w=rect.width+6
+        
+        if(singular!==undefined){
+            
+            let i=singular
+            
+            overlayCtx.clearRect(x+w*i,y,w,w)
+            
+            overlayCtx.putImageData(itemSprites[player.inventory[i+27]],x+w*i,y)
+            let count=player.inventoryCounts[i+27]
+            if(count){
+                overlayCtx.strokeText(count,x+w*i+w*0.8375,y+w*0.8825)
+                overlayCtx.fillText(count,x+w*i+w*0.8,y+w*0.85)
+            }
+            
+        }else{
+        
+            overlayCtx.clearRect(0,0,inWidth,inHeight)
+            
+            for(let i=0;i<9;i++){
+                overlayCtx.putImageData(itemSprites[player.inventory[i+27]],x+w*i,y)
+                let count=player.inventoryCounts[i+27]
+                if(count){
+                    overlayCtx.strokeText(count,x+w*i+w*0.8375,y+w*0.8825)
+                    overlayCtx.fillText(count,x+w*i+w*0.8,y+w*0.85)
+                }
+            }
+        }
+    }
+    player.drawHotbar()
+    
+    player.distributeToInventory=(id,count,eject=true)=>{
+        let updateHotbar
+        
+        for(let j=0;j<72;j++){
+            
+            let _j=j%36,
+                i=_j<9?27+_j:_j-9
+            
+            if(player.inventory[i]===id || j>=36 && !player.inventory[i]){
+                let space=64-player.inventoryCounts[i]
+                if(space>0){
+                    space=Math.min(space,count)
+                    count-=space
+                    player.inventoryCounts[i]+=space
+                    player.inventory[i]=id
+                    
+                    if(i>=27)updateHotbar=true
+                    if(count<=0)break
+                }
+            }
+        }
+        
+        if(count>0 && eject)
+            player.ejectItem(id,count)
+        
+        if(player.menu)
+            player.drawInventory()
+        else if(updateHotbar)
+            player.drawHotbar()
+            
+        return count
+    }
+    
+    player.ejectItem=(id,count)=>{
+        let s=5
+        objects.push(new Item(player.x,player.y+player.eyes,player.z,-viewInfo.camDir[0]*s,-viewInfo.camDir[1]*s,-viewInfo.camDir[2]*s,id,count))
+    }
+    
+    player.updateCreative=()=>{
+        
+        let speed=350*dt
+            sinYaw=Math.sin(yaw),cosYaw=Math.cos(yaw),c=0,
+            mx=0,mz=0
+        
+        if(!player.menu){
+            if(keys.w){
+                mx+=sinYaw
+                mz-=cosYaw
+                c++
+            }
+            if(keys.s){
+                mx-=sinYaw
+                mz+=cosYaw
+                c++
+            }
+            if(keys.a){
+                mx-=cosYaw
+                mz-=sinYaw
+                c++
+            }
+            if(keys.d){
+                mx+=cosYaw
+                mz+=sinYaw
+                c++
+            }
+            if(keys[' ']){
+                player.vy+=speed
+            }
+            if(keys.shift){
+                player.vy-=speed
+            }
+            if(c>1){
+                mx*=0.707106781
+                mz*=0.707106781
+            }
+        }
+        
+        player.vx+=mx*speed
+        player.vz+=mz*speed
+        
+        let f=1/(1+dt*15)
+        player.vx*=f
+        player.vy*=f
+        player.vz*=f
+        
+        player.x+=player.vx*dt
+        player.y+=player.vy*dt
+        player.z+=player.vz*dt
+    }
+    
+    player.update=()=>{
+        
+        let speed=(keys.shift?80:45)*dt
+            sinYaw=Math.sin(yaw),cosYaw=Math.cos(yaw),c=0,
+            mx=0,mz=0
+        
+        if(!player.menu){
+            if(keys.w){
+                mx+=sinYaw
+                mz-=cosYaw
+                c++
+            }
+            if(keys.s){
+                mx-=sinYaw
+                mz+=cosYaw
+                c++
+            }
+            if(keys.a){
+                mx-=cosYaw
+                mz-=sinYaw
+                c++
+            }
+            if(keys.d){
+                mx+=cosYaw
+                mz+=sinYaw
+                c++
+            }
+            if(keys[' '] && player.grounded){
+                player.vy=8
+                player.grounded=false
+            }
+            if(c>1){
+                mx*=0.707106781
+                mz*=0.707106781
+            }
+        }
+        
+        player.vx+=mx*speed
+        player.vz+=mz*speed
+        
+        let f=1/(1+dt*(player.grounded?15:12.5))
+        player.vx*=f
+        player.vz*=f
+        
+        player.vy-=25*dt
+        
+        let steps=Math.max(Math.abs(player.vy*dt*2)|0,1)
+        for(let i=0;i<steps;i++)
+            doCollisionY(player,player.vy*dt/steps)
+            
+        doCollisionX(player,player.vx*dt)
+        doCollisionZ(player,player.vz*dt)
+    }
+    
+    player.raycast=(x,y,z,dx,dy,dz,reach=7)=>{
+        let vx=Math.floor(x+0.5),
+            vy=Math.floor(y+0.5),
+            vz=Math.floor(z+0.5),
+            px=vx,py=vy,pz=vz,
+            sx=Math.sign(dx)||1,
+            sy=Math.sign(dy)||1,
+            sz=Math.sign(dz)||1,
+            tx=dx?Math.abs(1/dx):Infinity,
+            ty=dy?Math.abs(1/dy):Infinity,
+            tz=dz?Math.abs(1/dz):Infinity,
+            mx=dx>0?(vx+0.5-x)*tx:(x-(vx-0.5))*tx,
+            my=dy>0?(vy+0.5-y)*ty:(y-(vy-0.5))*ty,
+            mz=dz>0?(vz+0.5-z)*tz:(z-(vz-0.5))*tz,
+            dist=0
+    
+        while(dist<=reach){
+            let bl=getBlock(vx,vy,vz)
+            if(bl && bl!==blocks.water)
+                return [[vx,vy,vz],[px,py,pz]]
+            
+            px=vx
+            py=vy
+            pz=vz
+            
+            if (mx<my){
+                if(mx<mz){
+                    vx+=sx
+                    dist=mx
+                    mx+=tx
+                }else{
+                    vz+=sz
+                    dist=mz
+                    mz+=tz
+                }
+            }else{
+                if(my<mz){
+                    vy+=sy
+                    dist=my
+                    my+=ty
+                }else{
+                    vz+=sz
+                    dist=mz
+                    mz+=tz
+                }
+            }
+        }
+        return false
+    }
+    
+    player.placeBlock=()=>{
+        
+        let p=player.lookingAt
+        
+        if(p){
+            if(getBlock(p[0],p[1],p[2])===B.craftingTable){
+                player.menu=craftingTableMenu
+                player.runInventory()
+                return
+            }
+        }
+        p=player.placingAt
+        if(p){
+            
+            let w=player.width
+            if(aabbTest(player.x-w,player.x+w,player.y,player.y+player.height,player.z-w,player.z+w,p[0]-0.5,p[0]+0.5,p[1]-0.5,p[1]+0.5,p[2]-0.5,p[2]+0.5))
+                return
+            
+            let item=player.inventory[27+player.hotbarFocus]
+            if(itemPlaceable[item]){
+                placeBlock(p[0],p[1],p[2],item)
+                
+                if(!player.creative){
+                    let count=--player.inventoryCounts[27+player.hotbarFocus]
+                    if(count<=0)
+                        player.inventory[27+player.hotbarFocus]=0
+                    player.drawHotbar(player.hotbarFocus)
+                }
+            }
+        }
+    }
+    player.destroyBlock=()=>{
+        
+        let p=player.lookingAt
+        if(p){
+            destroyBlock(p[0],p[1],p[2])
+        }
+    }
+    
+    return player
+})()
+
+
+let maxBlocksInChunk=16*256*16,
+    maxFacesInChunk=maxBlocksInChunk*3,
+    div16=1/16,
+    trisBuffer=gl.createBuffer()
+{
+    let trisConnector=new Uint32Array(maxFacesInChunk*6)
+    for(let i=0,n=trisConnector.length,v=0;i<n;i+=6,v+=4){
+        trisConnector[i]=v+2
+        trisConnector[i+1]=v+1
+        trisConnector[i+2]=v
+        trisConnector[i+3]=v
+        trisConnector[i+4]=v+3
+        trisConnector[i+5]=v+2
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,trisConnector,gl.STATIC_DRAW)
+}
+
+let posToInd=(ix,iy,iz)=>ix|(iz<<4)|(iy<<8),
+    X=1,Y=1<<8,Z=1<<4,
+    aoDarkness=0.9,
+    aoFactor=(s1,s2,c)=>{
+        return 0.9999-(1-(s1&&s2?0:1-(s1+s2+c)*0.33333))*aoDarkness
+    },
+    aoInt=(s1,s2,c)=>{
+        return s1&s2?0:3-(s1+s2+c)
+    }
+    
+let chunks=new Map(),
+    lodChunks=[new Map(),new Map(),new Map()],
+    renderDist=5,
+    lodRanges=[[3,5],[3,6],[3,8]]
+    
+// lodRanges=[[3,5]]
+
+let _OFFSET=1<<25,
+    _BASE=1<<26,
+    _ADD=_OFFSET*_BASE+_OFFSET,
+    chunkKey=(x,z)=>x*_BASE+z+_ADD,
+    getChunk=(x,z)=>chunks.get(chunkKey(x,z)),
+    getBlock=(x,y,z)=>{
+        let c=chunks.get(chunkKey(x>>4,z>>4))
+        if(c && c.data)
+            return c.data[posToInd(x&15,y,z&15)]
+        return 0
+    },
+    getLight=(x,y,z)=>{
+        let c=chunks.get(chunkKey(x>>4,z>>4))
+        if(c)
+            return c.light[posToInd(x&15,y,z&15)]
+        return 0
+    },
+    saveModification=(cx,cz,ind,id)=>{
+        let key=cx+','+cz,
+            chunkData=MODS.get(key)
+        if(!chunkData){
+            chunkData=new Map()
+            MODS.set(key,chunkData)
+        }
+        chunkData.set(ind,id)
+        
+        for(let i=0;i<lodRanges.length;i++){
+            let key=chunkKey(cx>>(i+1),cz>>(i+1)),
+                c=lodChunks[i].get(key)
+            
+            if(c){
+                c.dispose()
+                lodChunks[i].delete(key)
+            }
+        }
+    },
+    placeBlock=(x,y,z,b)=>{
+        let cx=x>>4,cz=z>>4,
+            c=getChunk(cx,cz)
+        if(!c)return
+        
+        let ind,lightLvl=blockLightLevels[b]
+        x&=15
+        z&=15
+        if(c.data[ind=posToInd(x,y,z)])return
+        c.data[ind]=b
+        
+        saveModification(cx,cz,ind,b)
+        
+        let tempC=c
+        c.constructMesh()
+        if(x===0&&(c=getChunk(cx-1,cz)))c.constructMesh()
+        if(x===15&&(c=getChunk(cx+1,cz)))c.constructMesh()
+        if(z===0&&(c=getChunk(cx,cz-1)))c.constructMesh()
+        if(z===15&&(c=getChunk(cx,cz+1)))c.constructMesh()
+        if(x===0&&z===0&&(c=getChunk(cx-1,cz-1)))c.constructMesh()
+        if(x===15&&z===0&&(c=getChunk(cx+1,cz-1)))c.constructMesh()
+        if(x===15&&z===15&&(c=getChunk(cx+1,cz+1)))c.constructMesh()
+        if(x===0&&z===15&&(c=getChunk(cx-1,cz+1)))c.constructMesh()
+        c=tempC
+        
+        c.blockLightRQueue.push(packLightSeed(x,y,z,unpack_blockLight(c.light[ind])))
+        c.light[ind]&=0xf0
+        c.light[ind]=(c.light[ind]&0xf0)|lightLvl
+        c.blockLightQueue.push(packLightSeed(x,y,z,lightLvl))
+        
+        //under sky
+        if(y===255||unpack_skyLight(c.light[ind])===15){
+            for(let i=y-1;i>=0;i--){
+                if(!c.data[ind=posToInd(x,i,z)]){
+                    c.light[ind]&=0x0f
+                    c.skyLightRQueue.push(packLightSeed(x,i,z,15))
+                }else
+                    break
+            }
+        }
+        c.skyLightRQueue.push(packLightSeed(x,y,z,unpack_skyLight(c.light[ind=posToInd(x,y,z)])))
+        c.light[ind]&=0x0f
+    },
+    destroyBlock=(x,y,z)=>{
+        let cx=x>>4,cz=z>>4,
+            c=getChunk(cx,cz)
+        if(!c)return
+        
+        x&=15
+        z&=15
+        
+        let ind,lightLvl=blockLightLevels[c.data[ind=posToInd(x,y,z)]]
+        
+        objects.push(new Item(x+(cx<<4),y,z+(cz<<4),D.random(-1,1),D.random(1.5,3),D.random(-1,1),c.data[ind],1))
+        
+        c.data[ind]=0
+        
+        saveModification(cx,cz,ind,0)
+        
+        let tempC=c
+        c.constructMesh()
+        if(x===0&&(c=getChunk(cx-1,cz)))c.constructMesh()
+        if(x===15&&(c=getChunk(cx+1,cz)))c.constructMesh()
+        if(z===0&&(c=getChunk(cx,cz-1)))c.constructMesh()
+        if(z===15&&(c=getChunk(cx,cz+1)))c.constructMesh()
+        if(x===0&&z===0&&(c=getChunk(cx-1,cz-1)))c.constructMesh()
+        if(x===15&&z===0&&(c=getChunk(cx+1,cz-1)))c.constructMesh()
+        if(x===15&&z===15&&(c=getChunk(cx+1,cz+1)))c.constructMesh()
+        if(x===0&&z===15&&(c=getChunk(cx-1,cz+1)))c.constructMesh()
+        c=tempC
+        
+        //light source block was removed
+        if(lightLvl){
+            c.light[ind]&=0xf0
+            c.blockLightRQueue.push(packLightSeed(x,y,z,lightLvl))
+        }
+        
+        let newLvl=Math.max(unpack_blockLight(getLight(c.x+x-1,y,c.z+z)),unpack_blockLight(getLight(c.x+x+1,y,c.z+z)))
+        newLvl=Math.max(unpack_blockLight(getLight(c.x+x,y-1,c.z+z)),newLvl)
+        newLvl=Math.max(unpack_blockLight(getLight(c.x+x,y+1,c.z+z)),newLvl)
+        newLvl=Math.max(unpack_blockLight(getLight(c.x+x,y,c.z+z-1)),newLvl)
+        newLvl=Math.max(unpack_blockLight(getLight(c.x+x,y,c.z+z+1)),newLvl)
+        if(newLvl>0){//seeding with lvl 0 will mark chunk neighbors as dirty
+            newLvl--
+            c.light[ind]=(c.light[ind]&0xf0)|newLvl
+            c.blockLightQueue.push(packLightSeed(x,y,z,newLvl))
+        }
+        
+        if(y===255||unpack_skyLight(c.light[ind+Y])===15){
+            for(let i=y;i>=0;i--){
+                if(!c.data[ind=posToInd(x,i,z)]){
+                    c.light[ind]=(c.light[ind]&0x0f)|(15<<4)
+                    c.skyLightQueue.push(packLightSeed(x,i,z,15))
+                }else
+                    break
+            }
+        }else{
+            newLvl=Math.max(unpack_skyLight(getLight(c.x+x-1,y,c.z+z)),unpack_skyLight(getLight(c.x+x+1,y,c.z+z)))
+            newLvl=Math.max(unpack_skyLight(getLight(c.x+x,y-1,c.z+z)),newLvl)
+            newLvl=Math.max(unpack_skyLight(getLight(c.x+x,y+1,c.z+z)),newLvl)
+            newLvl=Math.max(unpack_skyLight(getLight(c.x+x,y,c.z+z-1)),newLvl)
+            newLvl=Math.max(unpack_skyLight(getLight(c.x+x,y,c.z+z+1)),newLvl)
+            if(newLvl>0){
+                newLvl--
+                c.light[ind]=(c.light[ind]&0x0f)|(newLvl<<4)
+                c.skyLightQueue.push(packLightSeed(x,y,z,newLvl))
+            }
+        }
+    },
+    aabbTest=(minX1,maxX1,minY1,maxY1,minZ1,maxZ1,minX2,maxX2,minY2,maxY2,minZ2,maxZ2)=>{
+        return minX1<=maxX2&&maxX1>=minX2&&
+            minY1<=maxY2&&maxY1>=minY2&&
+            minZ1<=maxZ2&&maxZ1>=minZ2
+    },
+    emptyArr=new Array(maxBlocksInChunk).fill(-1),
+    emptyLightArr=new Array(maxBlocksInChunk).fill(0xf0),
+    getChunkData=(x,z)=>{
+        let c=chunks.get(chunkKey(x,z))
+        return c?c.data:emptyArr
+    },
+    getChunkLight=(x,z)=>{
+        let c=chunks.get(chunkKey(x,z))
+        return c?c.light:emptyLightArr
+    },
+    chunkRenderSortingFunc=(a,b)=>a.distToPlayer-b.distToPlayer,
+    chunkGenSortingFunc=(a,b)=>a[2]-b[2],
+    dirtiedThisFrame=false,
+    reprunedThisFrame=false,
+    someLightingChanged=false
+
+let greedyXZ=new Uint16Array(16*256),
+    greedyY=new Uint16Array(16*16),
+    greedyXZ_light=new Uint32Array(16*256),
+    greedyY_light=new Uint32Array(16*16),
+    packFace=(a00,a10,a11,a01,type)=>(a00)|(a10<<2)|(a11<<4)|(a01<<6)|(type<<8),
+    unpack_a00=(n)=>1-(1-(n&3)*0.333)*aoDarkness,
+    unpack_a10=(n)=>1-(1-((n>>2)&3)*0.333)*aoDarkness,
+    unpack_a11=(n)=>1-(1-((n>>4)&3)*0.333)*aoDarkness,
+    unpack_a01=(n)=>1-(1-((n>>6)&3)*0.333)*aoDarkness,
+    unpack_type=(n)=>n>>8,
+    packFaceLight=(l00,l10,l11,l01)=>((l00)|(l10<<8)|(l11<<16)|(l01<<24))>>>0,
+    unpack_l00=(n)=>n&255,
+    unpack_l10=(n)=>(n>>>8)&255,
+    unpack_l11=(n)=>(n>>>16)&255,
+    unpack_l01=(n)=>(n>>>24)&255,
+    
+    packLight=(sky,block)=>(sky<<4)|block,
+    unpack_skyLight=(n)=>n>>4,
+    unpack_blockLight=(n)=>n&15,
+    avgLight=(a,b,c,d,solidB,solidC,solidD)=>{//a is the direct front, d is corner
+        let count=1,sumSky=unpack_skyLight(a),sumBlock=unpack_blockLight(a)
+        if(!solidB){
+            sumSky+=unpack_skyLight(b)
+            sumBlock+=unpack_blockLight(b)
+            count++
+        }
+        if(!solidC){
+            sumSky+=unpack_skyLight(c)
+            sumBlock+=unpack_blockLight(c)
+            count++
+        }
+        if(!solidD&&(!solidB||!solidC)){
+            sumSky+=unpack_skyLight(d)
+            sumBlock+=unpack_blockLight(d)
+            count++
+        }
+        return packLight(Math.round(sumSky/count),Math.round(sumBlock/count))
+    },
+    canCombine=(mask,maskLight,ind,face,faceLight)=>{
+        return mask[ind]===face && maskLight[ind]===faceLight || mask[ind] && maskLight[ind]===0 && faceLight===0
+    },
+    globalGreedyMeshScale=1,
+    globalGreedyMeshEpsilon=0,
+    greedyMesh=(mesh,mask,maskLight,width,height,tx,ty,tz,formFace)=>{
+        for(let y=0;y<height;y++){
+            for(let x=0;x<width;x++){
+                
+                let face=mask[y*width+x]
+                if(!face)continue
+                
+                let foundWidth=1,foundHeight=1,
+                    ind=y*width+x,
+                    faceLight=maskLight[ind]
+                
+                while(x+foundWidth<width&&canCombine(mask,maskLight,ind+foundWidth,face,faceLight))foundWidth++
+                
+                while(y+foundHeight<height){
+                    
+                    let esc
+                    for(let i=0;i<foundWidth;i++)
+                        if(!canCombine(mask,maskLight,ind+foundHeight*width+i,face,faceLight)){
+                            esc=true
+                            break
+                        }
+                    
+                    if(esc)break
+                    foundHeight++
+                }
+                
+                formFace(mesh,face,x,y,foundWidth,foundHeight,tx,ty,tz,faceLight)
+                
+                for(let _y=0;_y<foundHeight;_y++){
+                    let _ind=ind+_y*width
+                    mask.fill(0,_ind,_ind+foundWidth)
+                }
+                x+=foundWidth-1
+            }
+        }
+    },
+    formFace_pY=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxA=(tx+x-0.5)*globalGreedyMeshScale,cxB=(tx+x-0.5+w)*globalGreedyMeshScale,
+            cyB=(ty+0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czA=(tz+y-0.5)*globalGreedyMeshScale,czB=(tz+y-0.5+h)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=h*globalGreedyMeshScale,sizeV=w*globalGreedyMeshScale,
+            b=textureSlice[unpack_type(face)*3],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15<a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxB,cyB,czA, u,v,b+a10, 0,1,0, s10,b10,
+                cxB,cyB,czB, u+sizeU,v,b+a11, 0,1,0, s11,b11,
+                cxA,cyB,czB, u+sizeU,v+sizeV,b+a01, 0,1,0, s01,b01,
+                cxA,cyB,czA, u,v+sizeV,b+a00, 0,1,0, s00,b00)
+        else
+            mesh.push(
+                cxB,cyB,czB, u+sizeU,v,b+a11, 0,1,0, s11,b11,
+                cxA,cyB,czB, u+sizeU,v+sizeV,b+a01, 0,1,0, s01,b01,
+                cxA,cyB,czA, u,v+sizeV,b+a00, 0,1,0, s00,b00,
+                cxB,cyB,czA, u,v,b+a10, 0,1,0, s10,b10)
+    },
+    formFace_nY=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxA=(tx+x-0.5)*globalGreedyMeshScale,cxB=(tx+x-0.5+w)*globalGreedyMeshScale,
+            cyA=(ty-0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czA=(tz+y-0.5)*globalGreedyMeshScale,czB=(tz+y-0.5+h)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=h*globalGreedyMeshScale,sizeV=w*globalGreedyMeshScale,
+            b=textureSlice[unpack_type(face)*3+2],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15>a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxB,cyA,czB, u,v,b+a11, 0,-1,0, s11,b11,
+                cxB,cyA,czA, u+sizeU,v,b+a10, 0,-1,0, s10,b10,
+                cxA,cyA,czA, u+sizeU,v+sizeV,b+a00, 0,-1,0, s00,b00,
+                cxA,cyA,czB, u,v+sizeV,b+a01, 0,-1,0, s01,b01)
+        else
+            mesh.push(
+                cxB,cyA,czA, u+sizeU,v,b+a10, 0,-1,0, s10,b10,
+                cxA,cyA,czA, u+sizeU,v+sizeV,b+a00, 0,-1,0, s00,b00,
+                cxA,cyA,czB, u,v+sizeV,b+a01, 0,-1,0, s01,b01,
+                cxB,cyA,czB, u,v,b+a11, 0,-1,0, s11,b11)
+    },
+    formFace_nX=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxA=(tx-0.5)*globalGreedyMeshScale,
+            cyA=(ty+y-0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,cyB=(ty+y-0.5+h-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czA=(tz+x-0.5)*globalGreedyMeshScale,czB=(tz+x-0.5+w)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=w*globalGreedyMeshScale,sizeV=h,
+            b=textureSlice[unpack_type(face)*3+1],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15<a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxA,cyB,czA, u,v+sizeV,b+a10, -1,0,0, s10,b10,
+                cxA,cyB,czB, u+sizeU,v+sizeV,b+a11, -1,0,0, s11,b11,
+                cxA,cyA,czB, u+sizeU,v,b+a01, -1,0,0, s01,b01,
+                cxA,cyA,czA, u,v,b+a00, -1,0,0, s00,b00)
+        else
+            mesh.push(
+                cxA,cyB,czB, u+sizeU,v+sizeV,b+a11, -1,0,0, s11,b11,
+                cxA,cyA,czB, u+sizeU,v,b+a01, -1,0,0, s01,b01,
+                cxA,cyA,czA, u,v,b+a00, -1,0,0, s00,b00,
+                cxA,cyB,czA, u,v+sizeV,b+a10, -1,0,0, s10,b10)
+    },
+    formFace_pX=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxB=(tx+0.5)*globalGreedyMeshScale,
+            cyA=(ty+y-0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,cyB=(ty+y-0.5+h-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czA=(tz+x-0.5)*globalGreedyMeshScale,czB=(tz+x-0.5+w)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=w*globalGreedyMeshScale,sizeV=h,
+            b=textureSlice[unpack_type(face)*3+1],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15>a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxB,cyB,czB, u,v+sizeV,b+a11, 1,0,0, s11,b11,
+                cxB,cyB,czA, u+sizeU,v+sizeV,b+a10, 1,0,0, s10,b10,
+                cxB,cyA,czA, u+sizeU,v,b+a00, 1,0,0, s00,b00,
+                cxB,cyA,czB, u,v,b+a01, 1,0,0, s01,b01)
+        else
+            mesh.push(
+                cxB,cyB,czA, u+sizeU,v+sizeV,b+a10, 1,0,0, s10,b10,
+                cxB,cyA,czA, u+sizeU,v,b+a00, 1,0,0, s00,b00,
+                cxB,cyA,czB, u,v,b+a01, 1,0,0, s01,b01,
+                cxB,cyB,czB, u,v+sizeV,b+a11, 1,0,0, s11,b11)
+    },
+    formFace_nZ=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxA=(tx+x-0.5)*globalGreedyMeshScale,cxB=(tx+x-0.5+w)*globalGreedyMeshScale,
+            cyA=(ty+y-0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,cyB=(ty+y-0.5+h-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czA=(tz-0.5)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=w*globalGreedyMeshScale,sizeV=h,
+            b=textureSlice[unpack_type(face)*3+1],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15<a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxB,cyA,czA, u,v,b+a10, 0,0,-1, s10,b10,
+                cxB,cyB,czA, u,v+sizeV,b+a11, 0,0,-1, s11,b11,
+                cxA,cyB,czA, u+sizeU,v+sizeV,b+a01, 0,0,-1, s01,b01,
+                cxA,cyA,czA, u+sizeU,v,b+a00, 0,0,-1, s00,b00)
+        else
+            mesh.push(
+                cxB,cyB,czA, u,v+sizeV,b+a11, 0,0,-1, s11,b11,
+                cxA,cyB,czA, u+sizeU,v+sizeV,b+a01, 0,0,-1, s01,b01,
+                cxA,cyA,czA, u+sizeU,v,b+a00, 0,0,-1, s00,b00,
+                cxB,cyA,czA, u,v,b+a10, 0,0,-1, s10,b10)
+    },
+    formFace_pZ=(mesh,face,x,y,w,h,tx,ty,tz,faceLight)=>{
+        let cxA=(tx+x-0.5)*globalGreedyMeshScale,cxB=(tx+x-0.5+w)*globalGreedyMeshScale,
+            cyA=(ty+y-0.5-globalGreedyMeshEpsilon)*globalGreedyMeshScale,cyB=(ty+y-0.5+h-globalGreedyMeshEpsilon)*globalGreedyMeshScale,
+            czB=(tz+0.5)*globalGreedyMeshScale,
+            u=0,v=0,sizeU=w*globalGreedyMeshScale,sizeV=h,
+            b=textureSlice[unpack_type(face)*3+1],
+            a00=unpack_a00(face),
+            a10=unpack_a10(face),
+            a11=unpack_a11(face),
+            a01=unpack_a01(face),
+            l00=unpack_l00(faceLight),
+            l10=unpack_l10(faceLight),
+            l11=unpack_l11(faceLight),
+            l01=unpack_l01(faceLight),
+            s00=unpack_skyLight(l00),b00=unpack_blockLight(l00),
+            s10=unpack_skyLight(l10),b10=unpack_blockLight(l10),
+            s11=unpack_skyLight(l11),b11=unpack_blockLight(l11),
+            s01=unpack_skyLight(l01),b01=unpack_blockLight(l01)
+        if(a00+a11+(Math.max(s00,b00)+Math.max(s11,b11))/15>a01+a10+(Math.max(s01,b01)+Math.max(s10,b10))/15)
+            mesh.push(
+                cxB,cyB,czB, u+sizeU,v+sizeV,b+a11, 0,0,1, s11,b11,
+                cxB,cyA,czB, u+sizeU,v,b+a10, 0,0,1, s10,b10,
+                cxA,cyA,czB, u,v,b+a00, 0,0,1, s00,b00,
+                cxA,cyB,czB, u,v+sizeV,b+a01, 0,0,1, s01,b01)
+        else
+            mesh.push(
+                cxB,cyA,czB, u+sizeU,v,b+a10, 0,0,1, s10,b10,
+                cxA,cyA,czB, u,v,b+a00, 0,0,1, s00,b00,
+                cxA,cyB,czB, u,v+sizeV,b+a01, 0,0,1, s01,b01,
+                cxB,cyB,czB, u+sizeU,v+sizeV,b+a11, 0,0,1, s11,b11)
+    },
+    packLightSeed=(x,y,z,v)=>x|(y<<4)|(z<<12)|(v<<16),
+    unpackLightSeed_x=(n)=>n&15,
+    unpackLightSeed_y=(n)=>(n>>4)&255,
+    unpackLightSeed_z=(n)=>(n>>12)&15,
+    unpackLightSeed_v=(n)=>n>>16
+
+
+let workerBlob=window.URL.createObjectURL(new Blob([
+        document.getElementById('terrainWorker').textContent.replace('!!INJECT HERE!!',
+        `
+            let blocks=${JSON.stringify(blocks)}
+            let posToInd=${posToInd.toString()}
+            let X=${X},Y=${Y},Z=${Z}
+        `)
+    ],{type:"text/javascript"})),
+    numWorkers=Math.max((navigator.hardwareConcurrency||4)*0.5,1)|0,
+    workers=[]
+for(let i=0;i<numWorkers;i++)workers.push({worker:new Worker(workerBlob),busy:false})
+
+class Chunk{
+    
+    constructor(ix,iz){
+        
+        chunks.set(chunkKey(ix,iz),this)
+        
+        this.scale=1
+        this.ix=ix
+        this.iz=iz
+        this.x=ix<<4
+        this.z=iz<<4
+        this.minX=this.x-0.5
+        this.minY=0
+        this.minZ=this.z-0.5
+        this.maxX=this.x+15.5
+        this.maxY=256
+        this.maxZ=this.z+15.5
+        this.mx=(this.minX+this.maxX)*0.5
+        this.mz=(this.minZ+this.maxZ)*0.5
+        this.data=emptyArr
+        this.buffer=gl.createBuffer()
+        this.vao=gl.createVertexArray()
+        this.indexAmount=0
+        gl.bindVertexArray(this.vao)
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+        
+        this.light=emptyLightArr
+        this.tops=new Uint8Array(16*16)
+        this.skyLightQueue=[]
+        this.blockLightQueue=[]
+        this.skyLightRQueue=[]
+        this.blockLightRQueue=[]
+        this.lightDirty=Infinity
+        this.unspreadDirty=0
+        
+        this.constructMesh=this.constructMesh
+    }
+    
+    receiveWorkerData(data){
+        
+        if(!data)return
+        
+        let neigh,ix=this.ix,iz=this.iz
+        if(neigh=getChunk(ix+1,iz))neigh.dirty=true
+        if(neigh=getChunk(ix-1,iz))neigh.dirty=true
+        if(neigh=getChunk(ix,iz+1))neigh.dirty=true
+        if(neigh=getChunk(ix,iz-1))neigh.dirty=true
+        if(neigh=getChunk(ix-1,iz-1))neigh.dirty=true
+        if(neigh=getChunk(ix+1,iz-1))neigh.dirty=true
+        if(neigh=getChunk(ix+1,iz+1))neigh.dirty=true
+        if(neigh=getChunk(ix-1,iz+1))neigh.dirty=true
+        
+        this.data=data
+        this.light=new Uint8Array(maxBlocksInChunk)
+        this.collectBorderLights()
+        this.initalizeLights()
+        this.constructMesh()
+    }
+    
+    readyNeighbors(){
+        this.NxC=getChunk(this.ix-1,this.iz)
+        this.PxC=getChunk(this.ix+1,this.iz)
+        this.NzC=getChunk(this.ix,this.iz-1)
+        this.PzC=getChunk(this.ix,this.iz+1)
+        this.Nx=getChunkData(this.ix-1,this.iz)
+        this.Px=getChunkData(this.ix+1,this.iz)
+        this.Nz=getChunkData(this.ix,this.iz-1)
+        this.Pz=getChunkData(this.ix,this.iz+1)
+        this.NxL=getChunkLight(this.ix-1,this.iz)
+        this.PxL=getChunkLight(this.ix+1,this.iz)
+        this.NzL=getChunkLight(this.ix,this.iz-1)
+        this.PzL=getChunkLight(this.ix,this.iz+1)
+    }
+    
+    initalizeLights(){
+        let data=this.data,
+            light=this.light,
+            tops=this.tops
+        tops.fill(0)
+        for(let x=0;x<16;x++)
+            for(let z=0;z<16;z++){
+                let skyLightStopped=false
+                for(let y=255;y>=0;y--){
+                    let ind=posToInd(x,y,z),
+                        block=data[ind],
+                        llvl=blockLightLevels[block]
+                        
+                    if(!skyLightStopped){
+                        if(block){
+                            tops[(z<<4)|x]=y
+                            skyLightStopped=true
+                        }else
+                            light[ind]|=0xf0
+                    }
+                    if(llvl){
+                        light[ind]|=0x0f
+                        this.blockLightQueue.push(packLightSeed(x,y,z,llvl))
+                    }
+                }
+            }
+        
+        for(let x=0;x<16;x++)
+            for(let z=0;z<16;z++){
+                let ind=(z<<4)|x
+                for(let y=tops[ind]+1;y<256;y++){
+                    if(x===0||tops[ind-1]>y||x===15||tops[ind+1]>y||z===0||tops[ind-16]>y||z===15||tops[ind+16]>y)
+                        this.skyLightQueue.push(packLightSeed(x,y,z,15))
+                    
+                }
+            }
+        
+        this.readyNeighbors()
+        this.spreadSkyLight()
+    }
+    
+    spreadSkyLight(){
+        
+        let lightQueue=this.skyLightQueue,
+            data=this.data,
+            light=this.light,
+            start=0
+        while(start<lightQueue.length){
+            let lightSeed=lightQueue[start++],
+                x=unpackLightSeed_x(lightSeed),
+                y=unpackLightSeed_y(lightSeed),
+                z=unpackLightSeed_z(lightSeed),
+                v=unpack_skyLight(light[posToInd(x,y,z)]),
+                nx=posToInd(15,y,z),
+                px=posToInd(0,y,z),
+                nz=posToInd(x,y,15),
+                pz=posToInd(x,y,0),
+                ind
+            
+            if(x===0 && this.NxC)
+                this.NxC.lightDirty=frameCount
+            if(x===15 && this.PxC)
+                this.PxC.lightDirty=frameCount
+            if(z===0 && this.NzC)
+                this.NzC.lightDirty=frameCount
+            if(z===15 && this.PzC)
+                this.PzC.lightDirty=frameCount
+            
+            if(v<=1)continue
+            
+            if(x===0 && this.Nx[nx]===0 && unpack_skyLight(this.NxL[nx])<v-1){
+                this.NxC.skyLightQueue.push(packLightSeed(15,y,z,v-1))
+                this.NxL[nx]=(this.NxL[nx]&0x0f)|((v-1)<<4)
+            }
+            if(x===15 && this.Px[px]===0 && unpack_skyLight(this.PxL[px])<v-1){
+                this.PxC.skyLightQueue.push(packLightSeed(0,y,z,v-1))
+                this.PxL[px]=(this.PxL[px]&0x0f)|((v-1)<<4)
+            }
+            if(z===0 && this.Nz[nz]===0 && unpack_skyLight(this.NzL[nz])<v-1){
+                this.NzC.skyLightQueue.push(packLightSeed(x,y,15,v-1))
+                this.NzL[nz]=(this.NzL[nz]&0x0f)|((v-1)<<4)
+            }
+            if(z===15 && this.Pz[pz]===0 && unpack_skyLight(this.PzL[pz])<v-1){
+                this.PzC.skyLightQueue.push(packLightSeed(x,y,0,v-1))
+                this.PzL[pz]=(this.PzL[pz]&0x0f)|((v-1)<<4)
+            }
+            
+            if(x!==0 && !data[ind=posToInd(x-1,y,z)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x-1,y,z,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+            if(x!==15 && !data[ind=posToInd(x+1,y,z)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x+1,y,z,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+            if(y!==0 && !data[ind=posToInd(x,y-1,z)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y-1,z,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+            if(y!==255 && !data[ind=posToInd(x,y+1,z)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y+1,z,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+            if(z!==0 && !data[ind=posToInd(x,y,z-1)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y,z-1,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+            if(z!==15 && !data[ind=posToInd(x,y,z+1)] && unpack_skyLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y,z+1,v-1))
+                light[ind]=(light[ind]&0x0f)|((v-1)<<4)
+            }
+        }
+        
+        this.skyLightQueue.length=0
+    }
+    
+    spreadBlockLight(){
+        
+        let lightQueue=this.blockLightQueue,
+            data=this.data,
+            light=this.light,
+            start=0
+        while(start<lightQueue.length){
+            let lightSeed=lightQueue[start++],
+                x=unpackLightSeed_x(lightSeed),
+                y=unpackLightSeed_y(lightSeed),
+                z=unpackLightSeed_z(lightSeed),
+                v=unpack_blockLight(light[posToInd(x,y,z)]),
+                nx=posToInd(15,y,z),
+                px=posToInd(0,y,z),
+                nz=posToInd(x,y,15),
+                pz=posToInd(x,y,0),
+                ind
+            
+            if(x===0 && this.NxC)
+                this.NxC.lightDirty=frameCount
+            if(x===15 && this.PxC)
+                this.PxC.lightDirty=frameCount
+            if(z===0 && this.NzC)
+                this.NzC.lightDirty=frameCount
+            if(z===15 && this.PzC)
+                this.PzC.lightDirty=frameCount
+            
+            if(v<=1)continue
+            
+            if(x===0 && this.Nx[nx]===0 && unpack_blockLight(this.NxL[nx])<v-1){
+                this.NxC.blockLightQueue.push(packLightSeed(15,y,z,v-1))
+                this.NxL[nx]=(this.NxL[nx]&0xf0)|(v-1)
+            }
+            if(x===15 && this.Px[px]===0 && unpack_blockLight(this.PxL[px])<v-1){
+                this.PxC.blockLightQueue.push(packLightSeed(0,y,z,v-1))
+                this.PxL[px]=(this.PxL[px]&0xf0)|(v-1)
+            }
+            if(z===0 && this.Nz[nz]===0 && unpack_blockLight(this.NzL[nz])<v-1){
+                this.NzC.blockLightQueue.push(packLightSeed(x,y,15,v-1))
+                this.NzL[nz]=(this.NzL[nz]&0xf0)|(v-1)
+            }
+            if(z===15 && this.Pz[pz]===0 && unpack_blockLight(this.PzL[pz])<v-1){
+                this.PzC.blockLightQueue.push(packLightSeed(x,y,0,v-1))
+                this.PzL[pz]=(this.PzL[pz]&0xf0)|(v-1)
+            }
+            
+            if(x!==0 && !data[ind=posToInd(x-1,y,z)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x-1,y,z,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+            if(x!==15 && !data[ind=posToInd(x+1,y,z)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x+1,y,z,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+            if(y!==0 && !data[ind=posToInd(x,y-1,z)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y-1,z,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+            if(y!==255 && !data[ind=posToInd(x,y+1,z)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y+1,z,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+            if(z!==0 && !data[ind=posToInd(x,y,z-1)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y,z-1,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+            if(z!==15 && !data[ind=posToInd(x,y,z+1)] && unpack_blockLight(light[ind])<v-1){
+                lightQueue.push(packLightSeed(x,y,z+1,v-1))
+                light[ind]=(light[ind]&0xf0)|(v-1)
+            }
+        }
+        
+        this.blockLightQueue.length=0
+    }
+    
+    unspreadSkyLight(){
+        
+        let lightRQueue=this.skyLightRQueue,
+            data=this.data,
+            light=this.light,
+            start=0
+        while(start<lightRQueue.length){
+            let lightSeed=lightRQueue[start++],
+                x=unpackLightSeed_x(lightSeed),
+                y=unpackLightSeed_y(lightSeed),
+                z=unpackLightSeed_z(lightSeed),
+                v=unpackLightSeed_v(lightSeed),
+                nx=posToInd(15,y,z),
+                px=posToInd(0,y,z),
+                nz=posToInd(x,y,15),
+                pz=posToInd(x,y,0),
+                ind
+            
+            if(x===0 && this.NxC)
+                this.NxC.lightDirty=frameCount
+            if(x===15 && this.PxC)
+                this.PxC.lightDirty=frameCount
+            if(z===0 && this.NzC)
+                this.NzC.lightDirty=frameCount
+            if(z===15 && this.PzC)
+                this.PzC.lightDirty=frameCount
+            
+            if(v<=1)continue
+            
+            if(x===0 && this.Nx[nx]===0){
+                let nLvl=unpack_skyLight(this.NxL[nx])
+                if(nLvl===v-1){
+                    this.NxC.skyLightRQueue.push(packLightSeed(15,y,z,nLvl))
+                    this.NxL[nx]&=0x0f
+                }else if(nLvl>=v)
+                    this.NxC.skyLightQueue.push(packLightSeed(15,y,z,nLvl))
+            }
+            if(x===15 && this.Px[px]===0){
+                let nLvl=unpack_skyLight(this.PxL[px])
+                if(nLvl===v-1){
+                    this.PxC.skyLightRQueue.push(packLightSeed(0,y,z,nLvl))
+                    this.PxL[px]&=0x0f
+                }else if(nLvl>=v)
+                    this.PxC.skyLightQueue.push(packLightSeed(0,y,z,nLvl))
+            }
+            if(z===0 && this.Nz[nz]===0){
+                let nLvl=unpack_skyLight(this.NzL[nz])
+                if(nLvl===v-1){
+                    this.NzC.skyLightRQueue.push(packLightSeed(x,y,15,nLvl))
+                    this.NzL[nz]&=0x0f
+                }else if(nLvl>=v)
+                    this.NzC.skyLightQueue.push(packLightSeed(x,y,15,nLvl))
+            }
+            if(z===15 && this.Pz[pz]===0){
+                let nLvl=unpack_skyLight(this.PzL[pz])
+                if(nLvl===v-1){
+                    this.PzC.skyLightRQueue.push(packLightSeed(x,y,0,nLvl))
+                    this.PzL[pz]&=0x0f
+                }else if(nLvl>=v)
+                    this.PzC.skyLightQueue.push(packLightSeed(x,y,0,nLvl))
+            }
+            
+            
+            if(x!==0 && !data[ind=posToInd(x-1,y,z)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x-1,y,z,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x-1,y,z,nLvl))
+            }
+            if(x!==15 && !data[ind=posToInd(x+1,y,z)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x+1,y,z,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x+1,y,z,nLvl))
+            }
+            if(y!==0 && !data[ind=posToInd(x,y-1,z)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y-1,z,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x,y-1,z,nLvl))
+            }
+            if(y!==255 && !data[ind=posToInd(x,y+1,z)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y+1,z,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x,y+1,z,nLvl))
+            }
+            if(z!==0 && !data[ind=posToInd(x,y,z-1)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y,z-1,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x,y,z-1,nLvl))
+            }
+            if(z!==15 && !data[ind=posToInd(x,y,z+1)]){
+                let nLvl=unpack_skyLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y,z+1,nLvl))
+                    light[ind]&=0x0f
+                }else if(nLvl>=v)
+                    this.skyLightQueue.push(packLightSeed(x,y,z+1,nLvl))
+            }
+        }
+        
+        this.skyLightRQueue.length=0
+    }
+    
+    unspreadBlockLight(){
+        
+        let lightRQueue=this.blockLightRQueue,
+            data=this.data,
+            light=this.light,
+            start=0
+        while(start<lightRQueue.length){
+            let lightSeed=lightRQueue[start++],
+                x=unpackLightSeed_x(lightSeed),
+                y=unpackLightSeed_y(lightSeed),
+                z=unpackLightSeed_z(lightSeed),
+                v=unpackLightSeed_v(lightSeed),
+                nx=posToInd(15,y,z),
+                px=posToInd(0,y,z),
+                nz=posToInd(x,y,15),
+                pz=posToInd(x,y,0),
+                ind
+            
+            if(x===0 && this.NxC)
+                this.NxC.lightDirty=frameCount
+            if(x===15 && this.PxC)
+                this.PxC.lightDirty=frameCount
+            if(z===0 && this.NzC)
+                this.NzC.lightDirty=frameCount
+            if(z===15 && this.PzC)
+                this.PzC.lightDirty=frameCount
+            
+            if(v<=1)continue
+            
+            if(x===0 && this.Nx[nx]===0){
+                let nLvl=unpack_blockLight(this.NxL[nx])
+                if(nLvl===v-1){
+                    this.NxC.blockLightRQueue.push(packLightSeed(15,y,z,nLvl))
+                    this.NxL[nx]&=0xf0
+                }else if(nLvl>=v)
+                    this.NxC.blockLightQueue.push(packLightSeed(15,y,z,nLvl))
+            }
+            if(x===15 && this.Px[px]===0){
+                let nLvl=unpack_blockLight(this.PxL[px])
+                if(nLvl===v-1){
+                    this.PxC.blockLightRQueue.push(packLightSeed(0,y,z,nLvl))
+                    this.PxL[px]&=0xf0
+                }else if(nLvl>=v)
+                    this.PxC.blockLightQueue.push(packLightSeed(0,y,z,nLvl))
+            }
+            if(z===0 && this.Nz[nz]===0){
+                let nLvl=unpack_blockLight(this.NzL[nz])
+                if(nLvl===v-1){
+                    this.NzC.blockLightRQueue.push(packLightSeed(x,y,15,nLvl))
+                    this.NzL[nz]&=0xf0
+                }else if(nLvl>=v)
+                    this.NzC.blockLightQueue.push(packLightSeed(x,y,15,nLvl))
+            }
+            if(z===15 && this.Pz[pz]===0){
+                let nLvl=unpack_blockLight(this.PzL[pz])
+                if(nLvl===v-1){
+                    this.PzC.blockLightRQueue.push(packLightSeed(x,y,0,nLvl))
+                    this.PzL[pz]&=0xf0
+                }else if(nLvl>=v)
+                    this.PzC.blockLightQueue.push(packLightSeed(x,y,0,nLvl))
+            }
+            
+            
+            if(x!==0 && !data[ind=posToInd(x-1,y,z)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x-1,y,z,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x-1,y,z,nLvl))
+            }
+            if(x!==15 && !data[ind=posToInd(x+1,y,z)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x+1,y,z,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x+1,y,z,nLvl))
+            }
+            if(y!==0 && !data[ind=posToInd(x,y-1,z)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y-1,z,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x,y-1,z,nLvl))
+            }
+            if(y!==255 && !data[ind=posToInd(x,y+1,z)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y+1,z,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x,y+1,z,nLvl))
+            }
+            if(z!==0 && !data[ind=posToInd(x,y,z-1)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y,z-1,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x,y,z-1,nLvl))
+            }
+            if(z!==15 && !data[ind=posToInd(x,y,z+1)]){
+                let nLvl=unpack_blockLight(light[ind])
+                if(nLvl===v-1){
+                    lightRQueue.push(packLightSeed(x,y,z+1,nLvl))
+                    light[ind]&=0xf0
+                }else if(nLvl>=v)
+                    this.blockLightQueue.push(packLightSeed(x,y,z+1,nLvl))
+            }
+        }
+        
+        this.blockLightRQueue.length=0
+    }
+    
+    collectBorderLights(){
+        this.readyNeighbors()
+        
+        let data=this.data,
+            light=this.light
+            
+        for(let x=0;x<16;x++)
+            for(let y=0;y<256;y++){
+                
+                let nx=posToInd(15,y,x),
+                    px=posToInd(0,y,x),
+                    nz=posToInd(x,y,15),
+                    pz=posToInd(x,y,0),
+                    ind,v,thisV
+                
+                if(!data[ind=posToInd(0,y,x)] && this.Nx[nx]===0 && (v=unpack_skyLight(this.NxL[nx])-1)>(thisV=unpack_skyLight(light[ind]))){
+                    light[ind]=(light[ind]&0x0f)|(v<<4)
+                    this.skyLightQueue.push(packLightSeed(0,y,x,v))
+                }
+                if(!data[ind=posToInd(15,y,x)] && this.Px[px]===0 && (v=unpack_skyLight(this.PxL[px])-1)>(thisV=unpack_skyLight(light[ind]))){
+                    light[ind]=(light[ind]&0x0f)|(v<<4)
+                    this.skyLightQueue.push(packLightSeed(15,y,x,v))
+                }
+                if(!data[ind=posToInd(x,y,0)] && this.Nz[nz]===0 && (v=unpack_skyLight(this.NzL[nz])-1)>(thisV=unpack_skyLight(light[ind]))){
+                    light[ind]=(light[ind]&0x0f)|(v<<4)
+                    this.skyLightQueue.push(packLightSeed(x,y,0,v))
+                }
+                if(!data[ind=posToInd(x,y,15)] && this.Pz[pz]===0 && (v=unpack_skyLight(this.PzL[pz])-1)>(thisV=unpack_skyLight(light[ind]))){
+                    light[ind]=(light[ind]&0x0f)|(v<<4)
+                    this.skyLightQueue.push(packLightSeed(x,y,15,v))
+                }
+                
+                
+                if(!data[ind=posToInd(0,y,x)] && this.Nx[nx]===0 && (v=unpack_blockLight(this.NxL[nx])-1)>(thisV=unpack_blockLight(light[ind]))){
+                    light[ind]=(light[ind]&0xf0)|v
+                    this.blockLightQueue.push(packLightSeed(0,y,x,v))
+                }
+                if(!data[ind=posToInd(15,y,x)] && this.Px[px]===0 && (v=unpack_blockLight(this.PxL[px])-1)>(thisV=unpack_blockLight(light[ind]))){
+                    light[ind]=(light[ind]&0xf0)|v
+                    this.blockLightQueue.push(packLightSeed(15,y,x,v))
+                }
+                if(!data[ind=posToInd(x,y,0)] && this.Nz[nz]===0 && (v=unpack_blockLight(this.NzL[nz])-1)>(thisV=unpack_blockLight(light[ind]))){
+                    light[ind]=(light[ind]&0xf0)|v
+                    this.blockLightQueue.push(packLightSeed(x,y,0,v))
+                }
+                if(!data[ind=posToInd(x,y,15)] && this.Pz[pz]===0 && (v=unpack_blockLight(this.PzL[pz])-1)>(thisV=unpack_blockLight(light[ind]))){
+                    light[ind]=(light[ind]&0xf0)|v
+                    this.blockLightQueue.push(packLightSeed(x,y,15,v))
+                }
+            }
+    }
+    
+    constructMesh(){
+        
+        if(this.data===emptyArr)return
+        
+        let x=this.x,z=this.z,
+            data=this.data,
+            dataL=this.light,
+            mesh=[],
+            Px=getChunkData(this.ix+1,this.iz),
+            Nx=getChunkData(this.ix-1,this.iz),
+            Pz=getChunkData(this.ix,this.iz+1),
+            Nz=getChunkData(this.ix,this.iz-1),
+            PP=getChunkData(this.ix+1,this.iz+1),
+            NP=getChunkData(this.ix-1,this.iz+1),
+            NN=getChunkData(this.ix-1,this.iz-1),
+            PN=getChunkData(this.ix+1,this.iz-1),
+            one=0.999,
+            PxL=getChunkLight(this.ix+1,this.iz),
+            NxL=getChunkLight(this.ix-1,this.iz),
+            PzL=getChunkLight(this.ix,this.iz+1),
+            NzL=getChunkLight(this.ix,this.iz-1),
+            PPL=getChunkLight(this.ix+1,this.iz+1),
+            NPL=getChunkLight(this.ix-1,this.iz+1),
+            NNL=getChunkLight(this.ix-1,this.iz-1),
+            PNL=getChunkLight(this.ix+1,this.iz-1)
+        
+        //+y
+        for(let iy=0;iy<256;iy++){
+            greedyY.fill(0)
+            for(let iz=0;iz<16;iz++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eU || !data[i+Y]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cL,cR,cF,cB,cLF,cRF,cLB,cRB,
+                            iL,iR,iF,iB,iLF,iRF,iLB,iRB
+                        if(!eU){
+                            let bL=(eL?(cL=NxL,Nx)[iL=posToInd(15,iy+1,iz)]:(cL=dataL,data)[iL=i-X+Y])>0,
+                                bR=(eR?(cR=PxL,Px)[iR=posToInd(0,iy+1,iz)]:(cR=dataL,data)[iR=i+X+Y])>0,
+                                bF=(eF?(cF=NzL,Nz)[iF=posToInd(ix,iy+1,15)]:(cF=dataL,data)[iF=i-Z+Y])>0,
+                                bB=(eB?(cB=PzL,Pz)[iB=posToInd(ix,iy+1,0)]:(cB=dataL,data)[iB=i+Z+Y])>0,
+                                bLF=(eL?(eF?(cLF=NNL,NN)[iLF=posToInd(15,iy+1,15)]:(cLF=NxL,Nx)[iLF=posToInd(15,iy+1,iz-1)]):(eF?(cLF=NzL,Nz)[iLF=posToInd(ix-1,iy+1,15)]:(cLF=dataL,data)[iLF=i-X+Y-Z]))>0,
+                                bRF=(eR?(eF?(cRF=PNL,PN)[iRF=posToInd(0,iy+1,15)]:(cRF=PxL,Px)[iRF=posToInd(0,iy+1,iz-1)]):(eF?(cRF=NzL,Nz)[iRF=posToInd(ix+1,iy+1,15)]:(cRF=dataL,data)[iRF=i+X+Y-Z]))>0,
+                                bLB=(eL?(eB?(cLB=NPL,NP)[iLB=posToInd(15,iy+1,0)]:(cLB=NxL,Nx)[iLB=posToInd(15,iy+1,iz+1)]):(eB?(cLB=PzL,Pz)[iLB=posToInd(ix-1,iy+1,0)]:(cLB=dataL,data)[iLB=i-X+Y+Z]))>0,
+                                bRB=(eR?(eB?(cRB=PPL,PP)[iRB=posToInd(0,iy+1,0)]:(cRB=PxL,Px)[iRB=posToInd(0,iy+1,iz+1)]):(eB?(cRB=PzL,Pz)[iRB=posToInd(ix+1,iy+1,0)]:(cRB=dataL,data)[iRB=i+X+Y+Z]))>0
+                            a00=aoInt(bL,bF,bLF)
+                            a10=aoInt(bR,bF,bRF)
+                            a11=aoInt(bR,bB,bRB)
+                            a01=aoInt(bL,bB,bLB)
+                            let direct=eU?255:dataL[i+Y]
+                            l00=avgLight(direct,cL[iL],cF[iF],cLF[iLF],bL,bF,bLF)
+                            l10=avgLight(direct,cR[iR],cF[iF],cRF[iRF],bR,bF,bRF)
+                            l11=avgLight(direct,cR[iR],cB[iB],cRB[iRB],bR,bB,bRB)
+                            l01=avgLight(direct,cL[iL],cB[iB],cLB[iLB],bL,bB,bLB)
+                        }
+                        greedyY[(iz<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                        greedyY_light[(iz<<4)|ix]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyY,greedyY_light,16,16,x,iy,z,formFace_pY)
+        }
+        //-y
+        for(let iy=0;iy<256;iy++){
+            greedyY.fill(0)
+            for(let iz=0;iz<16;iz++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eD || !data[i-Y]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cL,cR,cF,cB,cLF,cRF,cLB,cRB,
+                            iL,iR,iF,iB,iLF,iRF,iLB,iRB
+                        if(!eD){
+                            let bL=(eL?(cL=NxL,Nx)[iL=posToInd(15,iy-1,iz)]:(cL=dataL,data)[iL=i-X-Y])>0,
+                                bR=(eR?(cR=PxL,Px)[iR=posToInd(0,iy-1,iz)]:(cR=dataL,data)[iR=i+X-Y])>0,
+                                bF=(eF?(cF=NzL,Nz)[iF=posToInd(ix,iy-1,15)]:(cF=dataL,data)[iF=i-Z-Y])>0,
+                                bB=(eB?(cB=PzL,Pz)[iB=posToInd(ix,iy-1,0)]:(cB=dataL,data)[iB=i+Z-Y])>0,
+                                bLF=(eL?(eF?(cLF=NNL,NN)[iLF=posToInd(15,iy-1,15)]:(cLF=NxL,Nx)[iLF=posToInd(15,iy-1,iz-1)]):(eF?(cLF=NzL,Nz)[iLF=posToInd(ix-1,iy-1,15)]:(cLF=dataL,data)[iLF=i-X-Y-Z]))>0,
+                                bRF=(eR?(eF?(cRF=PNL,PN)[iRF=posToInd(0,iy-1,15)]:(cRF=PxL,Px)[iRF=posToInd(0,iy-1,iz-1)]):(eF?(cRF=NzL,Nz)[iRF=posToInd(ix+1,iy-1,15)]:(cRF=dataL,data)[iRF=i+X-Y-Z]))>0,
+                                bLB=(eL?(eB?(cLB=NPL,NP)[iLB=posToInd(15,iy-1,0)]:(cLB=NxL,Nx)[iLB=posToInd(15,iy-1,iz+1)]):(eB?(cLB=PzL,Pz)[iLB=posToInd(ix-1,iy-1,0)]:(cLB=dataL,data)[iLB=i-X-Y+Z]))>0,
+                                bRB=(eR?(eB?(cRB=PPL,PP)[iRB=posToInd(0,iy-1,0)]:(cRB=PxL,Px)[iRB=posToInd(0,iy-1,iz+1)]):(eB?(cRB=PzL,Pz)[iRB=posToInd(ix+1,iy-1,0)]:(cRB=dataL,data)[iRB=i+X-Y+Z]))>0
+                            a00=aoInt(bL,bF,bLF)
+                            a10=aoInt(bR,bF,bRF)
+                            a11=aoInt(bR,bB,bRB)
+                            a01=aoInt(bL,bB,bLB)
+                            let direct=eD?255:dataL[i-Y]
+                            l00=avgLight(direct,cL[iL],cF[iF],cLF[iLF],bL,bF,bLF)
+                            l10=avgLight(direct,cR[iR],cF[iF],cRF[iRF],bR,bF,bRF)
+                            l11=avgLight(direct,cR[iR],cB[iB],cRB[iRB],bR,bB,bRB)
+                            l01=avgLight(direct,cL[iL],cB[iB],cLB[iLB],bL,bB,bLB)
+                        }
+                        greedyY[(iz<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                        greedyY_light[(iz<<4)|ix]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyY,greedyY_light,16,16,x,iy,z,formFace_nY)
+        }
+        //-x
+        for(let ix=0;ix<16;ix++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<256;iy++){
+                for(let iz=0;iz<16;iz++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eL? !Nx[posToInd(15,iy,iz)] : !data[i-X]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cF,cB,cU,cD,cFU,cBU,cFD,cBD,
+                            iF,iB,iU,iD,iFU,iBU,iFD,iBD
+                            cF=cB=cU=cD=cFU=cBU=cFD=cBD=emptyArr
+                        let bF=(eF?(eL?(cF=NNL,NN)[iF=posToInd(15,iy,15)]:(cF=NzL,Nz)[iF=posToInd(ix-1,iy,15)]):(eL?(cF=NxL,Nx)[iF=posToInd(15,iy,iz-1)]:(cF=dataL,data)[iF=i-X-Z]))>0,
+                            bB=(eB?(eL?(cB=NPL,NP)[iB=posToInd(15,iy,0)]:(cB=PzL,Pz)[iB=posToInd(ix-1,iy,0)]):(eL?(cB=NxL,Nx)[iB=posToInd(15,iy,iz+1)]:(cB=dataL,data)[iB=i-X+Z]))>0,
+                            bU=(eU?0:(eL?(cU=NxL,Nx)[iU=posToInd(15,iy+1,iz)]:(cU=dataL,data)[iU=i+Y-X]))>0,
+                            bD=(eD?0:(eL?(cD=NxL,Nx)[iD=posToInd(15,iy-1,iz)]:(cD=dataL,data)[iD=i-Y-X]))>0,
+                            bFU=(eU?0:(eF?(eL?(cFU=NNL,NN)[iFU=posToInd(15,iy+1,15)]:(cFU=NzL,Nz)[iFU=posToInd(ix-1,iy+1,15)]):(eL?(cFU=NxL,Nx)[iFU=posToInd(15,iy+1,iz-1)]:(cFU=dataL,data)[iFU=i-X-Z+Y])))>0,
+                            bBU=(eU?0:(eB?(eL?(cBU=NPL,NP)[iBU=posToInd(15,iy+1,0)]:(cBU=PzL,Pz)[iBU=posToInd(ix-1,iy+1,0)]):(eL?(cBU=NxL,Nx)[iBU=posToInd(15,iy+1,iz+1)]:(cBU=dataL,data)[iBU=i-X+Z+Y])))>0,
+                            bFD=(eD?0:(eF?(eL?(cFD=NNL,NN)[iFD=posToInd(15,iy-1,15)]:(cFD=NzL,Nz)[iFD=posToInd(ix-1,iy-1,15)]):(eL?(cFD=NxL,Nx)[iFD=posToInd(15,iy-1,iz-1)]:(cFD=dataL,data)[iFD=i-X-Z-Y])))>0,
+                            bBD=(eD?0:(eB?(eL?(cBD=NPL,NP)[iBD=posToInd(15,iy-1,0)]:(cBD=PzL,Pz)[iBD=posToInd(ix-1,iy-1,0)]):(eL?(cBD=NxL,Nx)[iBD=posToInd(15,iy-1,iz+1)]:(cBD=dataL,data)[iBD=i-X+Z-Y])))>0
+                        a00=aoInt(bF,bD,bFD)
+                        a10=aoInt(bF,bU,bFU)
+                        a11=aoInt(bB,bU,bBU)
+                        a01=aoInt(bB,bD,bBD)
+                        let direct=eL?NxL[posToInd(15,iy,iz)]:dataL[i-X]
+                        if(direct===undefined)direct=255
+                        l00=avgLight(direct,cF[iF],cD[iD],cFD[iFD],bF,bD,bFD)
+                        l10=avgLight(direct,cF[iF],cU[iU],cFU[iFU],bF,bU,bFU)
+                        l11=avgLight(direct,cB[iB],cU[iU],cBU[iBU],bB,bU,bBU)
+                        l01=avgLight(direct,cB[iB],cD[iD],cBD[iBD],bB,bD,bBD)
+                        greedyXZ[(iy<<4)|iz]=packFace(a00,a10,a11,a01,type)
+                        greedyXZ_light[(iy<<4)|iz]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,256,x+ix,0,z,formFace_nX)
+        }
+        //+x
+        for(let ix=0;ix<16;ix++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<256;iy++){
+                for(let iz=0;iz<16;iz++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eR? !Px[posToInd(0,iy,iz)] : !data[i+X]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cF,cB,cU,cD,cFU,cBU,cFD,cBD,
+                            iF,iB,iU,iD,iFU,iBU,iFD,iBD
+                            cF=cB=cU=cD=cFU=cBU=cFD=cBD=emptyArr
+                        let bF=(eF?(eR?(cF=PNL,PN)[iF=posToInd(0,iy,15)]:(cF=NzL,Nz)[iF=posToInd(ix+1,iy,15)]):(eR?(cF=PxL,Px)[iF=posToInd(0,iy,iz-1)]:(cF=dataL,data)[iF=i+X-Z]))>0,
+                            bB=(eB?(eR?(cB=PPL,PP)[iB=posToInd(0,iy,0)]:(cB=PzL,Pz)[iB=posToInd(ix+1,iy,0)]):(eR?(cB=PxL,Px)[iB=posToInd(0,iy,iz+1)]:(cB=dataL,data)[iB=i+X+Z]))>0,
+                            bU=(eU?0:(eR?(cU=PxL,Px)[iU=posToInd(0,iy+1,iz)]:(cU=dataL,data)[iU=i+Y+X]))>0,
+                            bD=(eD?0:(eR?(cD=PxL,Px)[iD=posToInd(0,iy-1,iz)]:(cD=dataL,data)[iD=i-Y+X]))>0,
+                            bFU=(eU?0:(eF?(eR?(cFU=PNL,PN)[iFU=posToInd(0,iy+1,15)]:(cFU=NzL,Nz)[iFU=posToInd(ix+1,iy+1,15)]):(eR?(cFU=PxL,Px)[iFU=posToInd(0,iy+1,iz-1)]:(cFU=dataL,data)[iFU=i+X-Z+Y])))>0,
+                            bBU=(eU?0:(eB?(eR?(cBU=PPL,PP)[iBU=posToInd(0,iy+1,0)]:(cBU=PzL,Pz)[iBU=posToInd(ix+1,iy+1,0)]):(eR?(cBU=PxL,Px)[iBU=posToInd(0,iy+1,iz+1)]:(cBU=dataL,data)[iBU=i+X+Z+Y])))>0,
+                            bFD=(eD?0:(eF?(eR?(cFD=PNL,PN)[iFD=posToInd(0,iy-1,15)]:(cFD=NzL,Nz)[iFD=posToInd(ix+1,iy-1,15)]):(eR?(cFD=PxL,Px)[iFD=posToInd(0,iy-1,iz-1)]:(cFD=dataL,data)[iFD=i+X-Z-Y])))>0,
+                            bBD=(eD?0:(eB?(eR?(cBD=PPL,PP)[iBD=posToInd(0,iy-1,0)]:(cBD=PzL,Pz)[iBD=posToInd(ix+1,iy-1,0)]):(eR?(cBD=PxL,Px)[iBD=posToInd(0,iy-1,iz+1)]:(cBD=dataL,data)[iBD=i+X+Z-Y])))>0
+                        a00=aoInt(bF,bD,bFD)
+                        a10=aoInt(bF,bU,bFU)
+                        a11=aoInt(bB,bU,bBU)
+                        a01=aoInt(bB,bD,bBD)
+                        let direct=eR?PxL[posToInd(0,iy,iz)]:dataL[i+X]
+                        if(direct===undefined)direct=255
+                        l00=avgLight(direct,cF[iF],cD[iD],cFD[iFD],bF,bD,bFD)
+                        l10=avgLight(direct,cF[iF],cU[iU],cFU[iFU],bF,bU,bFU)
+                        l11=avgLight(direct,cB[iB],cU[iU],cBU[iBU],bB,bU,bBU)
+                        l01=avgLight(direct,cB[iB],cD[iD],cBD[iBD],bB,bD,bBD)
+                        greedyXZ[(iy<<4)|iz]=packFace(a00,a10,a11,a01,type)
+                        greedyXZ_light[(iy<<4)|iz]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,256,x+ix,0,z,formFace_pX)
+        }
+        //-z
+        for(let iz=0;iz<16;iz++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<256;iy++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eF? !Nz[posToInd(ix,iy,15)] : !data[i-Z]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cL,cR,cU,cD,cLU,cRU,cLD,cRD,
+                            iL,iR,iU,iD,iLU,iRU,iLD,iRD
+                            cL=cR=cU=cD=cLU=cRU=cLD=cRD=emptyArr
+                        let bL=(eL?(eF?(cL=NNL,NN)[iL=posToInd(15,iy,15)]:(cL=NxL,Nx)[iL=posToInd(15,iy,iz-1)]):(eF?(cL=NzL,Nz)[iL=posToInd(ix-1,iy,15)]:(cL=dataL,data)[iL=i-X-Z]))>0,
+                            bR=(eR?(eF?(cR=PNL,PN)[iR=posToInd(0,iy,15)]:(cR=PxL,Px)[iR=posToInd(0,iy,iz-1)]):(eF?(cR=NzL,Nz)[iR=posToInd(ix+1,iy,15)]:(cR=dataL,data)[iR=i+X-Z]))>0,
+                            bU=(eU?0:(eF?(cU=NzL,Nz)[iU=posToInd(ix,iy+1,15)]:(cU=dataL,data)[iU=i+Y-Z]))>0,
+                            bD=(eD?0:(eF?(cD=NzL,Nz)[iD=posToInd(ix,iy-1,15)]:(cD=dataL,data)[iD=i-Y-Z]))>0,
+                            bLU=(eU?0:(eL?(eF?(cLU=NNL,NN)[iLU=posToInd(15,iy+1,15)]:(cLU=NxL,Nx)[iLU=posToInd(15,iy+1,iz-1)]):(eF?(cLU=NzL,Nz)[iLU=posToInd(ix-1,iy+1,15)]:(cLU=dataL,data)[iLU=i-X+Y-Z])))>0,
+                            bRU=(eU?0:(eR?(eF?(cRU=PNL,PN)[iRU=posToInd(0,iy+1,15)]:(cRU=PxL,Px)[iRU=posToInd(0,iy+1,iz-1)]):(eF?(cRU=NzL,Nz)[iRU=posToInd(ix+1,iy+1,15)]:(cRU=dataL,data)[iRU=i+X+Y-Z])))>0,
+                            bLD=(eD?0:(eL?(eF?(cLD=NNL,NN)[iLD=posToInd(15,iy-1,15)]:(cLD=NxL,Nx)[iLD=posToInd(15,iy-1,iz-1)]):(eF?(cLD=NzL,Nz)[iLD=posToInd(ix-1,iy-1,15)]:(cLD=dataL,data)[iLD=i-X-Y-Z])))>0,
+                            bRD=(eD?0:(eR?(eF?(cRD=PNL,PN)[iRD=posToInd(0,iy-1,15)]:(cRD=PxL,Px)[iRD=posToInd(0,iy-1,iz-1)]):(eF?(cRD=NzL,Nz)[iRD=posToInd(ix+1,iy-1,15)]:(cRD=dataL,data)[iRD=i+X-Y-Z])))>0
+                        a00=aoInt(bL,bD,bLD)
+                        a10=aoInt(bR,bD,bRD)
+                        a11=aoInt(bR,bU,bRU)
+                        a01=aoInt(bL,bU,bLU)
+                        let direct=eF?NzL[posToInd(ix,iy,15)]:dataL[i-Z]
+                        if(direct===undefined)direct=255
+                        l00=avgLight(direct,cL[iL],cD[iD],cLD[iLD],bL,bD,bLD)
+                        l10=avgLight(direct,cR[iR],cD[iD],cRD[iRD],bR,bD,bRD)
+                        l11=avgLight(direct,cR[iR],cU[iU],cRU[iRU],bR,bU,bRU)
+                        l01=avgLight(direct,cL[iL],cU[iU],cLU[iLU],bL,bU,bLU)
+                        greedyXZ[(iy<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                        greedyXZ_light[(iy<<4)|ix]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,256,x,0,z+iz,formFace_nZ)
+        }
+        //+z
+        for(let iz=0;iz<16;iz++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<256;iy++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eB? !Pz[posToInd(ix,iy,0)] : !data[i+Z]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            l00=255,l10=255,l11=255,l01=255,
+                            cL,cR,cU,cD,cLU,cRU,cLD,cRD,
+                            iL,iR,iU,iD,iLU,iRU,iLD,iRD
+                            cL=cR=cU=cD=cLU=cRU=cLD=cRD=emptyArr
+                        let bL=(eL?(eB?(cL=NPL,NP)[iL=posToInd(15,iy,0)]:(cL=NxL,Nx)[iL=posToInd(15,iy,iz+1)]):(eB?(cL=PzL,Pz)[iL=posToInd(ix-1,iy,0)]:(cL=dataL,data)[iL=i-X+Z]))>0,
+                            bR=(eR?(eB?(cR=PPL,PP)[iR=posToInd(0,iy,0)]:(cR=PxL,Px)[iR=posToInd(0,iy,iz+1)]):(eB?(cR=PzL,Pz)[iR=posToInd(ix+1,iy,0)]:(cR=dataL,data)[iR=i+X+Z]))>0,
+                            bU=(eU?0:(eB?(cU=PzL,Pz)[iU=posToInd(ix,iy+1,0)]:(cU=dataL,data)[iU=i+Y+Z]))>0,
+                            bD=(eD?0:(eB?(cD=PzL,Pz)[iD=posToInd(ix,iy-1,0)]:(cD=dataL,data)[iD=i-Y+Z]))>0,
+                            bLU=(eU?0:(eL?(eB?(cLU=NPL,NP)[iLU=posToInd(15,iy+1,0)]:(cLU=NxL,Nx)[iLU=posToInd(15,iy+1,iz+1)]):(eB?(cLU=PzL,Pz)[iLU=posToInd(ix-1,iy+1,0)]:(cLU=dataL,data)[iLU=i-X+Y+Z])))>0,
+                            bRU=(eU?0:(eR?(eB?(cRU=PPL,PP)[iRU=posToInd(0,iy+1,0)]:(cRU=PxL,Px)[iRU=posToInd(0,iy+1,iz+1)]):(eB?(cRU=PzL,Pz)[iRU=posToInd(ix+1,iy+1,0)]:(cRU=dataL,data)[iRU=i+X+Y+Z])))>0,
+                            bLD=(eD?0:(eL?(eB?(cLD=NPL,NP)[iLD=posToInd(15,iy-1,0)]:(cLD=NxL,Nx)[iLD=posToInd(15,iy-1,iz+1)]):(eB?(cLD=PzL,Pz)[iLD=posToInd(ix-1,iy-1,0)]:(cLD=dataL,data)[iLD=i-X-Y+Z])))>0,
+                            bRD=(eD?0:(eR?(eB?(cRD=PPL,PP)[iRD=posToInd(0,iy-1,0)]:(cRD=PxL,Px)[iRD=posToInd(0,iy-1,iz+1)]):(eB?(cRD=PzL,Pz)[iRD=posToInd(ix+1,iy-1,0)]:(cRD=dataL,data)[iRD=i+X-Y+Z])))>0
+                        a00=aoInt(bL,bD,bLD)
+                        a10=aoInt(bR,bD,bRD)
+                        a11=aoInt(bR,bU,bRU)
+                        a01=aoInt(bL,bU,bLU)
+                        let direct=eB?PzL[posToInd(ix,iy,0)]:dataL[i+Z]
+                        if(direct===undefined)direct=255
+                        l00=avgLight(direct,cL[iL],cD[iD],cLD[iLD],bL,bD,bLD)
+                        l10=avgLight(direct,cR[iR],cD[iD],cRD[iRD],bR,bD,bRD)
+                        l11=avgLight(direct,cR[iR],cU[iU],cRU[iRU],bR,bU,bRU)
+                        l01=avgLight(direct,cL[iL],cU[iU],cLU[iLU],bL,bU,bLU)
+                        greedyXZ[(iy<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                        greedyXZ_light[(iy<<4)|ix]=packFaceLight(l00,l10,l11,l01)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,256,x,0,z+iz,formFace_pZ)
+        }
+        
+        gl.bindVertexArray(this.vao)
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer)
+        gl.bufferData(gl.ARRAY_BUFFER,Float32Array.from(mesh),gl.DYNAMIC_DRAW)
+        this.indexAmount=mesh.length/(44/6)
+        gl.vertexAttribPointer(0,3,gl.FLOAT,false,44,0)
+        gl.vertexAttribPointer(1,3,gl.FLOAT,false,44,12)
+        gl.vertexAttribPointer(2,3,gl.FLOAT,false,44,24)
+        gl.vertexAttribPointer(3,2,gl.FLOAT,false,44,36)
+        gl.enableVertexAttribArray(0)
+        gl.enableVertexAttribArray(1)
+        gl.enableVertexAttribArray(2)
+        gl.enableVertexAttribArray(3)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+    }
+    
+    frustumCulling(){
+        return testFrustum(this)
+    }
+    
+    renderMesh(){
+        
+        if(this.skyLightRQueue.length){
+            this.readyNeighbors()
+            this.unspreadSkyLight()
+            this.lightDirty=frameCount
+            this.unspreadDirty=frameCount
+            someLightingChanged=true
+        }
+        if(this.blockLightRQueue.length){
+            this.readyNeighbors()
+            this.unspreadBlockLight()
+            this.lightDirty=frameCount
+            this.unspreadDirty=frameCount
+            someLightingChanged=true
+        }
+        
+        if(this.skyLightQueue.length && frameCount>this.unspreadDirty+4){
+            this.readyNeighbors()
+            this.spreadSkyLight()
+            this.lightDirty=frameCount
+            this.unspreadDirty=0
+            someLightingChanged=true
+        }
+        if(this.blockLightQueue.length && frameCount>this.unspreadDirty+4){
+            this.readyNeighbors()
+            this.spreadBlockLight()
+            this.lightDirty=frameCount
+            this.unspreadDirty=0
+            someLightingChanged=true
+        }
+        
+        if(this.dirty && !dirtiedThisFrame || keys.t){
+            dirtiedThisFrame=true
+            this.dirty=false
+            this.constructMesh()
+        }
+        
+        if(frameCount>this.lightDirty+4){
+            this.constructMesh()
+            this.lightDirty=Infinity
+        }
+        
+        profiler.numFaces+=this.indexAmount/6
+        gl.bindVertexArray(this.vao)
+        gl.drawElements(gl.TRIANGLES,this.indexAmount,gl.UNSIGNED_INT,0)
+    }
+    
+    dispose(){
+        gl.deleteVertexArray(this.vao)
+        gl.deleteBuffer(this.buffer)
+    }
+}
+
+class LodChunk{
+    constructor(ix,iz,lodLevel){
+        this.lodLevel=lodLevel
+        lodChunks[lodLevel].set(chunkKey(ix,iz),this)
+        this.ix=ix
+        this.iz=iz
+        this.x=ix<<4
+        this.z=iz<<4
+        
+        let scale=2<<lodLevel
+        this.height=128>>lodLevel
+        this.scale=scale
+        this.minX=((ix*16)-0.5)*scale
+        this.minY=0
+        this.minZ=((iz*16)-0.5)*scale
+        this.maxX=((ix*16)+15.5)*scale
+        this.maxY=this.height
+        this.maxZ=((iz*16)+15.5)*scale
+        this.mx=(this.minX+this.maxX)*0.5
+        this.mz=(this.minZ+this.maxZ)*0.5
+        this.data=null
+        this.buffer=gl.createBuffer()
+        this.vao=gl.createVertexArray()
+        this.indexAmount=0
+        
+        gl.bindVertexArray(this.vao)
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+    }
+    
+    receiveWorkerData(data){
+        
+        let scale=this.scale
+        this.data=data
+        
+        //prune blocks below a certain y level
+        for(let x=0;x<16;x++)
+            for(let z=0;z<16;z++)
+                for(let y=60-scale;y>=0;y-=scale){
+                    this.data[posToInd(x,(y/scale)|0,z)]=0
+                }
+        
+        this.checkDirectionality()
+        this.constructMesh()
+    }
+    
+    checkDirectionality(){
+        
+        this.pruneNx=player.x>this.maxX
+        this.prunePx=player.x<this.minX
+        this.pruneNz=player.z>this.maxZ
+        this.prunePz=player.z<this.minZ
+        
+        return this.pruneNx!==this.prunedNx||this.prunePx!==this.prunedPx||this.pruneNz!==this.prunedNz||this.prunePz!==this.prunedPz
+    }
+    
+    constructMesh(){
+        
+        if(!this.data)return
+        
+        let x=this.x,z=this.z,
+            data=this.data,
+            dataL=emptyArr,
+            mesh=[],
+            Px=emptyArr,
+            Nx=emptyArr,
+            Pz=emptyArr,
+            Nz=emptyArr,
+            PP=emptyArr,
+            NP=emptyArr,
+            NN=emptyArr,
+            PN=emptyArr,
+            PxL=emptyArr,
+            NxL=emptyArr,
+            PzL=emptyArr,
+            NzL=emptyArr,
+            PPL=emptyArr,
+            NPL=emptyArr,
+            NNL=emptyArr,
+            PNL=emptyArr,
+            height=this.height
+        
+        globalGreedyMeshScale=this.scale
+        globalGreedyMeshEpsilon=this.scale*0.1
+        greedyY_light.fill(0xf0f0f0f0)
+        greedyXZ_light.fill(0xf0f0f0f0)
+        
+        //+y
+        for(let iy=0;iy<height;iy++){
+            greedyY.fill(0)
+            for(let iz=0;iz<16;iz++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eU || !data[i+Y]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cL,cR,cF,cB,cLF,cRF,cLB,cRB,
+                            iL,iR,iF,iB,iLF,iRF,iLB,iRB
+                        if(!eU){
+                            let bL=(eL?(cL=NxL,Nx)[iL=posToInd(15,iy+1,iz)]:(cL=dataL,data)[iL=i-X+Y])>0,
+                                bR=(eR?(cR=PxL,Px)[iR=posToInd(0,iy+1,iz)]:(cR=dataL,data)[iR=i+X+Y])>0,
+                                bF=(eF?(cF=NzL,Nz)[iF=posToInd(ix,iy+1,15)]:(cF=dataL,data)[iF=i-Z+Y])>0,
+                                bB=(eB?(cB=PzL,Pz)[iB=posToInd(ix,iy+1,0)]:(cB=dataL,data)[iB=i+Z+Y])>0,
+                                bLF=(eL?(eF?(cLF=NNL,NN)[iLF=posToInd(15,iy+1,15)]:(cLF=NxL,Nx)[iLF=posToInd(15,iy+1,iz-1)]):(eF?(cLF=NzL,Nz)[iLF=posToInd(ix-1,iy+1,15)]:(cLF=dataL,data)[iLF=i-X+Y-Z]))>0,
+                                bRF=(eR?(eF?(cRF=PNL,PN)[iRF=posToInd(0,iy+1,15)]:(cRF=PxL,Px)[iRF=posToInd(0,iy+1,iz-1)]):(eF?(cRF=NzL,Nz)[iRF=posToInd(ix+1,iy+1,15)]:(cRF=dataL,data)[iRF=i+X+Y-Z]))>0,
+                                bLB=(eL?(eB?(cLB=NPL,NP)[iLB=posToInd(15,iy+1,0)]:(cLB=NxL,Nx)[iLB=posToInd(15,iy+1,iz+1)]):(eB?(cLB=PzL,Pz)[iLB=posToInd(ix-1,iy+1,0)]:(cLB=dataL,data)[iLB=i-X+Y+Z]))>0,
+                                bRB=(eR?(eB?(cRB=PPL,PP)[iRB=posToInd(0,iy+1,0)]:(cRB=PxL,Px)[iRB=posToInd(0,iy+1,iz+1)]):(eB?(cRB=PzL,Pz)[iRB=posToInd(ix+1,iy+1,0)]:(cRB=dataL,data)[iRB=i+X+Y+Z]))>0
+                            a00=aoInt(bL,bF,bLF)
+                            a10=aoInt(bR,bF,bRF)
+                            a11=aoInt(bR,bB,bRB)
+                            a01=aoInt(bL,bB,bLB)
+                        }
+                        greedyY[(iz<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyY,greedyY_light,16,16,x,iy,z,formFace_pY)
+        }
+        //-y
+        //prune downward faces if below a certain y level
+        for(let iy=60/this.scale;iy<height;iy++){
+            greedyY.fill(0)
+            for(let iz=0;iz<16;iz++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eD || !data[i-Y]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cL,cR,cF,cB,cLF,cRF,cLB,cRB,
+                            iL,iR,iF,iB,iLF,iRF,iLB,iRB
+                        if(!eD){
+                            let bL=(eL?(cL=NxL,Nx)[iL=posToInd(15,iy-1,iz)]:(cL=dataL,data)[iL=i-X-Y])>0,
+                                bR=(eR?(cR=PxL,Px)[iR=posToInd(0,iy-1,iz)]:(cR=dataL,data)[iR=i+X-Y])>0,
+                                bF=(eF?(cF=NzL,Nz)[iF=posToInd(ix,iy-1,15)]:(cF=dataL,data)[iF=i-Z-Y])>0,
+                                bB=(eB?(cB=PzL,Pz)[iB=posToInd(ix,iy-1,0)]:(cB=dataL,data)[iB=i+Z-Y])>0,
+                                bLF=(eL?(eF?(cLF=NNL,NN)[iLF=posToInd(15,iy-1,15)]:(cLF=NxL,Nx)[iLF=posToInd(15,iy-1,iz-1)]):(eF?(cLF=NzL,Nz)[iLF=posToInd(ix-1,iy-1,15)]:(cLF=dataL,data)[iLF=i-X-Y-Z]))>0,
+                                bRF=(eR?(eF?(cRF=PNL,PN)[iRF=posToInd(0,iy-1,15)]:(cRF=PxL,Px)[iRF=posToInd(0,iy-1,iz-1)]):(eF?(cRF=NzL,Nz)[iRF=posToInd(ix+1,iy-1,15)]:(cRF=dataL,data)[iRF=i+X-Y-Z]))>0,
+                                bLB=(eL?(eB?(cLB=NPL,NP)[iLB=posToInd(15,iy-1,0)]:(cLB=NxL,Nx)[iLB=posToInd(15,iy-1,iz+1)]):(eB?(cLB=PzL,Pz)[iLB=posToInd(ix-1,iy-1,0)]:(cLB=dataL,data)[iLB=i-X-Y+Z]))>0,
+                                bRB=(eR?(eB?(cRB=PPL,PP)[iRB=posToInd(0,iy-1,0)]:(cRB=PxL,Px)[iRB=posToInd(0,iy-1,iz+1)]):(eB?(cRB=PzL,Pz)[iRB=posToInd(ix+1,iy-1,0)]:(cRB=dataL,data)[iRB=i+X-Y+Z]))>0
+                            a00=aoInt(bL,bF,bLF)
+                            a10=aoInt(bR,bF,bRF)
+                            a11=aoInt(bR,bB,bRB)
+                            a01=aoInt(bL,bB,bLB)
+                        }
+                        greedyY[(iz<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyY,greedyY_light,16,16,x,iy,z,formFace_nY)
+        }
+        //-x
+        if(!this.pruneNx)
+        for(let ix=0;ix<16;ix++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<height;iy++){
+                for(let iz=0;iz<16;iz++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eL? true : !data[i-X]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cF,cB,cU,cD,cFU,cBU,cFD,cBD,
+                            iF,iB,iU,iD,iFU,iBU,iFD,iBD
+                            cF=cB=cU=cD=cFU=cBU=cFD=cBD=emptyArr
+                        let bF=(eF?(eL?(cF=NNL,NN)[iF=posToInd(15,iy,15)]:(cF=NzL,Nz)[iF=posToInd(ix-1,iy,15)]):(eL?(cF=NxL,Nx)[iF=posToInd(15,iy,iz-1)]:(cF=dataL,data)[iF=i-X-Z]))>0,
+                            bB=(eB?(eL?(cB=NPL,NP)[iB=posToInd(15,iy,0)]:(cB=PzL,Pz)[iB=posToInd(ix-1,iy,0)]):(eL?(cB=NxL,Nx)[iB=posToInd(15,iy,iz+1)]:(cB=dataL,data)[iB=i-X+Z]))>0,
+                            bU=(eU?0:(eL?(cU=NxL,Nx)[iU=posToInd(15,iy+1,iz)]:(cU=dataL,data)[iU=i+Y-X]))>0,
+                            bD=(eD?0:(eL?(cD=NxL,Nx)[iD=posToInd(15,iy-1,iz)]:(cD=dataL,data)[iD=i-Y-X]))>0,
+                            bFU=(eU?0:(eF?(eL?(cFU=NNL,NN)[iFU=posToInd(15,iy+1,15)]:(cFU=NzL,Nz)[iFU=posToInd(ix-1,iy+1,15)]):(eL?(cFU=NxL,Nx)[iFU=posToInd(15,iy+1,iz-1)]:(cFU=dataL,data)[iFU=i-X-Z+Y])))>0,
+                            bBU=(eU?0:(eB?(eL?(cBU=NPL,NP)[iBU=posToInd(15,iy+1,0)]:(cBU=PzL,Pz)[iBU=posToInd(ix-1,iy+1,0)]):(eL?(cBU=NxL,Nx)[iBU=posToInd(15,iy+1,iz+1)]:(cBU=dataL,data)[iBU=i-X+Z+Y])))>0,
+                            bFD=(eD?0:(eF?(eL?(cFD=NNL,NN)[iFD=posToInd(15,iy-1,15)]:(cFD=NzL,Nz)[iFD=posToInd(ix-1,iy-1,15)]):(eL?(cFD=NxL,Nx)[iFD=posToInd(15,iy-1,iz-1)]:(cFD=dataL,data)[iFD=i-X-Z-Y])))>0,
+                            bBD=(eD?0:(eB?(eL?(cBD=NPL,NP)[iBD=posToInd(15,iy-1,0)]:(cBD=PzL,Pz)[iBD=posToInd(ix-1,iy-1,0)]):(eL?(cBD=NxL,Nx)[iBD=posToInd(15,iy-1,iz+1)]:(cBD=dataL,data)[iBD=i-X+Z-Y])))>0
+                        a00=aoInt(bF,bD,bFD)
+                        a10=aoInt(bF,bU,bFU)
+                        a11=aoInt(bB,bU,bBU)
+                        a01=aoInt(bB,bD,bBD)
+                        greedyXZ[(iy<<4)|iz]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,height,x+ix,0,z,formFace_nX)
+        }
+        //+x
+        if(!this.prunePx)
+        for(let ix=0;ix<16;ix++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<height;iy++){
+                for(let iz=0;iz<16;iz++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eR? true : !data[i+X]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cF,cB,cU,cD,cFU,cBU,cFD,cBD,
+                            iF,iB,iU,iD,iFU,iBU,iFD,iBD
+                            cF=cB=cU=cD=cFU=cBU=cFD=cBD=emptyArr
+                        let bF=(eF?(eR?(cF=PNL,PN)[iF=posToInd(0,iy,15)]:(cF=NzL,Nz)[iF=posToInd(ix+1,iy,15)]):(eR?(cF=PxL,Px)[iF=posToInd(0,iy,iz-1)]:(cF=dataL,data)[iF=i+X-Z]))>0,
+                            bB=(eB?(eR?(cB=PPL,PP)[iB=posToInd(0,iy,0)]:(cB=PzL,Pz)[iB=posToInd(ix+1,iy,0)]):(eR?(cB=PxL,Px)[iB=posToInd(0,iy,iz+1)]:(cB=dataL,data)[iB=i+X+Z]))>0,
+                            bU=(eU?0:(eR?(cU=PxL,Px)[iU=posToInd(0,iy+1,iz)]:(cU=dataL,data)[iU=i+Y+X]))>0,
+                            bD=(eD?0:(eR?(cD=PxL,Px)[iD=posToInd(0,iy-1,iz)]:(cD=dataL,data)[iD=i-Y+X]))>0,
+                            bFU=(eU?0:(eF?(eR?(cFU=PNL,PN)[iFU=posToInd(0,iy+1,15)]:(cFU=NzL,Nz)[iFU=posToInd(ix+1,iy+1,15)]):(eR?(cFU=PxL,Px)[iFU=posToInd(0,iy+1,iz-1)]:(cFU=dataL,data)[iFU=i+X-Z+Y])))>0,
+                            bBU=(eU?0:(eB?(eR?(cBU=PPL,PP)[iBU=posToInd(0,iy+1,0)]:(cBU=PzL,Pz)[iBU=posToInd(ix+1,iy+1,0)]):(eR?(cBU=PxL,Px)[iBU=posToInd(0,iy+1,iz+1)]:(cBU=dataL,data)[iBU=i+X+Z+Y])))>0,
+                            bFD=(eD?0:(eF?(eR?(cFD=PNL,PN)[iFD=posToInd(0,iy-1,15)]:(cFD=NzL,Nz)[iFD=posToInd(ix+1,iy-1,15)]):(eR?(cFD=PxL,Px)[iFD=posToInd(0,iy-1,iz-1)]:(cFD=dataL,data)[iFD=i+X-Z-Y])))>0,
+                            bBD=(eD?0:(eB?(eR?(cBD=PPL,PP)[iBD=posToInd(0,iy-1,0)]:(cBD=PzL,Pz)[iBD=posToInd(ix+1,iy-1,0)]):(eR?(cBD=PxL,Px)[iBD=posToInd(0,iy-1,iz+1)]:(cBD=dataL,data)[iBD=i+X+Z-Y])))>0
+                        a00=aoInt(bF,bD,bFD)
+                        a10=aoInt(bF,bU,bFU)
+                        a11=aoInt(bB,bU,bBU)
+                        a01=aoInt(bB,bD,bBD)
+                        let direct=eR?PxL[posToInd(0,iy,iz)]:dataL[i+X]
+                        greedyXZ[(iy<<4)|iz]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,height,x+ix,0,z,formFace_pX)
+        }
+        //-z
+        if(!this.pruneNz)
+        for(let iz=0;iz<16;iz++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<256;iy++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eF? true : !data[i-Z]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cL,cR,cU,cD,cLU,cRU,cLD,cRD,
+                            iL,iR,iU,iD,iLU,iRU,iLD,iRD
+                            cL=cR=cU=cD=cLU=cRU=cLD=cRD=emptyArr
+                        let bL=(eL?(eF?(cL=NNL,NN)[iL=posToInd(15,iy,15)]:(cL=NxL,Nx)[iL=posToInd(15,iy,iz-1)]):(eF?(cL=NzL,Nz)[iL=posToInd(ix-1,iy,15)]:(cL=dataL,data)[iL=i-X-Z]))>0,
+                            bR=(eR?(eF?(cR=PNL,PN)[iR=posToInd(0,iy,15)]:(cR=PxL,Px)[iR=posToInd(0,iy,iz-1)]):(eF?(cR=NzL,Nz)[iR=posToInd(ix+1,iy,15)]:(cR=dataL,data)[iR=i+X-Z]))>0,
+                            bU=(eU?0:(eF?(cU=NzL,Nz)[iU=posToInd(ix,iy+1,15)]:(cU=dataL,data)[iU=i+Y-Z]))>0,
+                            bD=(eD?0:(eF?(cD=NzL,Nz)[iD=posToInd(ix,iy-1,15)]:(cD=dataL,data)[iD=i-Y-Z]))>0,
+                            bLU=(eU?0:(eL?(eF?(cLU=NNL,NN)[iLU=posToInd(15,iy+1,15)]:(cLU=NxL,Nx)[iLU=posToInd(15,iy+1,iz-1)]):(eF?(cLU=NzL,Nz)[iLU=posToInd(ix-1,iy+1,15)]:(cLU=dataL,data)[iLU=i-X+Y-Z])))>0,
+                            bRU=(eU?0:(eR?(eF?(cRU=PNL,PN)[iRU=posToInd(0,iy+1,15)]:(cRU=PxL,Px)[iRU=posToInd(0,iy+1,iz-1)]):(eF?(cRU=NzL,Nz)[iRU=posToInd(ix+1,iy+1,15)]:(cRU=dataL,data)[iRU=i+X+Y-Z])))>0,
+                            bLD=(eD?0:(eL?(eF?(cLD=NNL,NN)[iLD=posToInd(15,iy-1,15)]:(cLD=NxL,Nx)[iLD=posToInd(15,iy-1,iz-1)]):(eF?(cLD=NzL,Nz)[iLD=posToInd(ix-1,iy-1,15)]:(cLD=dataL,data)[iLD=i-X-Y-Z])))>0,
+                            bRD=(eD?0:(eR?(eF?(cRD=PNL,PN)[iRD=posToInd(0,iy-1,15)]:(cRD=PxL,Px)[iRD=posToInd(0,iy-1,iz-1)]):(eF?(cRD=NzL,Nz)[iRD=posToInd(ix+1,iy-1,15)]:(cRD=dataL,data)[iRD=i+X-Y-Z])))>0
+                        a00=aoInt(bL,bD,bLD)
+                        a10=aoInt(bR,bD,bRD)
+                        a11=aoInt(bR,bU,bRU)
+                        a01=aoInt(bL,bU,bLU)
+                        greedyXZ[(iy<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,256,x,0,z+iz,formFace_nZ)
+        }
+        //+z
+        if(!this.prunePz)
+        for(let iz=0;iz<16;iz++){
+            greedyXZ.fill(0)
+            for(let iy=0;iy<height;iy++){
+                for(let ix=0;ix<16;ix++){
+                    let i=posToInd(ix,iy,iz),
+                        type=data[i]
+                    if(!type)continue
+                    let eL=ix===0,
+                        eR=ix===15,
+                        eD=iy===0,
+                        eU=iy===255,
+                        eF=iz===0,
+                        eB=iz===15
+                    if(eB? true : !data[i+Z]){
+                        let a00=3,a10=3,a01=3,a11=3,
+                            cL,cR,cU,cD,cLU,cRU,cLD,cRD,
+                            iL,iR,iU,iD,iLU,iRU,iLD,iRD
+                            cL=cR=cU=cD=cLU=cRU=cLD=cRD=emptyArr
+                        let bL=(eL?(eB?(cL=NPL,NP)[iL=posToInd(15,iy,0)]:(cL=NxL,Nx)[iL=posToInd(15,iy,iz+1)]):(eB?(cL=PzL,Pz)[iL=posToInd(ix-1,iy,0)]:(cL=dataL,data)[iL=i-X+Z]))>0,
+                            bR=(eR?(eB?(cR=PPL,PP)[iR=posToInd(0,iy,0)]:(cR=PxL,Px)[iR=posToInd(0,iy,iz+1)]):(eB?(cR=PzL,Pz)[iR=posToInd(ix+1,iy,0)]:(cR=dataL,data)[iR=i+X+Z]))>0,
+                            bU=(eU?0:(eB?(cU=PzL,Pz)[iU=posToInd(ix,iy+1,0)]:(cU=dataL,data)[iU=i+Y+Z]))>0,
+                            bD=(eD?0:(eB?(cD=PzL,Pz)[iD=posToInd(ix,iy-1,0)]:(cD=dataL,data)[iD=i-Y+Z]))>0,
+                            bLU=(eU?0:(eL?(eB?(cLU=NPL,NP)[iLU=posToInd(15,iy+1,0)]:(cLU=NxL,Nx)[iLU=posToInd(15,iy+1,iz+1)]):(eB?(cLU=PzL,Pz)[iLU=posToInd(ix-1,iy+1,0)]:(cLU=dataL,data)[iLU=i-X+Y+Z])))>0,
+                            bRU=(eU?0:(eR?(eB?(cRU=PPL,PP)[iRU=posToInd(0,iy+1,0)]:(cRU=PxL,Px)[iRU=posToInd(0,iy+1,iz+1)]):(eB?(cRU=PzL,Pz)[iRU=posToInd(ix+1,iy+1,0)]:(cRU=dataL,data)[iRU=i+X+Y+Z])))>0,
+                            bLD=(eD?0:(eL?(eB?(cLD=NPL,NP)[iLD=posToInd(15,iy-1,0)]:(cLD=NxL,Nx)[iLD=posToInd(15,iy-1,iz+1)]):(eB?(cLD=PzL,Pz)[iLD=posToInd(ix-1,iy-1,0)]:(cLD=dataL,data)[iLD=i-X-Y+Z])))>0,
+                            bRD=(eD?0:(eR?(eB?(cRD=PPL,PP)[iRD=posToInd(0,iy-1,0)]:(cRD=PxL,Px)[iRD=posToInd(0,iy-1,iz+1)]):(eB?(cRD=PzL,Pz)[iRD=posToInd(ix+1,iy-1,0)]:(cRD=dataL,data)[iRD=i+X-Y+Z])))>0
+                        a00=aoInt(bL,bD,bLD)
+                        a10=aoInt(bR,bD,bRD)
+                        a11=aoInt(bR,bU,bRU)
+                        a01=aoInt(bL,bU,bLU)
+                        greedyXZ[(iy<<4)|ix]=packFace(a00,a10,a11,a01,type)
+                    }
+                }
+            }
+            greedyMesh(mesh,greedyXZ,greedyXZ_light,16,height,x,0,z+iz,formFace_pZ)
+        }
+        
+        gl.bindVertexArray(this.vao)
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer)
+        gl.bufferData(gl.ARRAY_BUFFER,Float32Array.from(mesh),gl.DYNAMIC_DRAW)
+        this.indexAmount=mesh.length/(44/6)
+        gl.vertexAttribPointer(0,3,gl.FLOAT,false,44,0)
+        gl.vertexAttribPointer(1,3,gl.FLOAT,false,44,12)
+        gl.vertexAttribPointer(2,3,gl.FLOAT,false,44,24)
+        gl.vertexAttribPointer(3,2,gl.FLOAT,false,44,36)
+        gl.enableVertexAttribArray(0)
+        gl.enableVertexAttribArray(1)
+        gl.enableVertexAttribArray(2)
+        gl.enableVertexAttribArray(3)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+        
+        globalGreedyMeshScale=1
+        globalGreedyMeshEpsilon=0
+        
+        this.prunedNx=this.pruneNx
+        this.prunedPx=this.prunePx
+        this.prunedNz=this.pruneNz
+        this.prunedPz=this.prunePz
+    }
+    
+    frustumCulling(){
+        return testFrustum(this)
+    }
+    
+    renderMesh(){
+        
+        if(this.checkDirectionality() && !reprunedThisFrame){
+            this.constructMesh()
+            reprunedThisFrame=true
+        }
+        
+        profiler.numFaces+=this.indexAmount/6
+        gl.bindVertexArray(this.vao)
+        gl.drawElements(gl.TRIANGLES,this.indexAmount,gl.UNSIGNED_INT,0)
+    }
+    
+    dispose(){
+        gl.deleteVertexArray(this.vao)
+        gl.deleteBuffer(this.buffer)
+    }
+}
+
+let item1VAO=gl.createVertexArray()
+gl.bindVertexArray(item1VAO)
+gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer())
+let m=[],addM=(x,y,z,s)=>{
+    m.push(
+        s+x,s+s+y,s+z, 0,1,1, 1,0,0,
+        s+x,s+s+y,-s+z, 1,1,1, 1,0,0,
+        s+x,y,-s+z, 1,0,1, 1,0,0,
+        s+x,y,s+z, 0,0,1, 1,0,0,
+        -s+x,s+s+y,-s+z, 0,1,1, -1,0,0,
+        -s+x,s+s+y,s+z, 1,1,1, -1,0,0,
+        -s+x,y,s+z, 1,0,1, -1,0,0,
+        -s+x,y,-s+z, 0,0,1, -1,0,0,
+        -s+x,s+s+y,s+z, 0,1,1, 0,0,1,
+        s+x,s+s+y,s+z, 1,1,1, 0,0,1,
+        s+x,y,s+z, 1,0,1, 0,0,1,
+        -s+x,y,s+z, 0,0,1, 0,0,1,
+        s+x,s+s+y,-s+z, 0,1,1, 0,0,-1,
+        -s+x,s+s+y,-s+z, 1,1,1, 0,0,-1,
+        -s+x,y,-s+z, 1,0,1, 0,0,-1,
+        s+x,y,-s+z, 0,0,1, 0,0,-1,
+        -s+x,s+s+y,-s+z, 0,1,0, 0,1,0,
+        s+x,s+s+y,-s+z, 1,1,0, 0,1,0,
+        s+x,s+s+y,s+z, 1,0,0, 0,1,0,
+        -s+x,s+s+y,s+z, 0,0,0, 0,1,0,
+        -s+x,y,s+z, 0,1,2, 0,-1,0,
+        s+x,y,s+z, 1,1,2, 0,-1,0,
+        s+x,y,-s+z, 1,0,2, 0,-1,0,
+        -s+x,y,-s+z, 0,0,2, 0,-1,0
+    )
+}
+addM(0,0,0,0.12)
+gl.bufferData(gl.ARRAY_BUFFER,Float32Array.from(m),gl.DYNAMIC_DRAW)
+let item1IndexAmount=6*6
+gl.vertexAttribPointer(0,3,gl.FLOAT,false,36,0)
+gl.vertexAttribPointer(1,3,gl.FLOAT,false,36,12)
+gl.vertexAttribPointer(2,3,gl.FLOAT,false,36,24)
+gl.enableVertexAttribArray(0)
+gl.enableVertexAttribArray(1)
+gl.enableVertexAttribArray(2)
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+let item2VAO=gl.createVertexArray()
+gl.bindVertexArray(item2VAO)
+gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer())
+m=[]
+addM(-0.25*0.2,-0.1*0.2,-0.3*0.2,0.1)
+addM(0.35*0.2,0.15*0.2,-0.1,0.1)
+addM(0,0.3*0.2,0.3*0.2,0.1)
+gl.bufferData(gl.ARRAY_BUFFER,Float32Array.from(m),gl.DYNAMIC_DRAW)
+let item2IndexAmount=6*6*3
+gl.vertexAttribPointer(0,3,gl.FLOAT,false,36,0)
+gl.vertexAttribPointer(1,3,gl.FLOAT,false,36,12)
+gl.vertexAttribPointer(2,3,gl.FLOAT,false,36,24)
+gl.enableVertexAttribArray(0)
+gl.enableVertexAttribArray(1)
+gl.enableVertexAttribArray(2)
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,trisBuffer)
+gl.bindVertexArray(null)
+
+
+let objects=[]
+
+class Item{
+    constructor(x,y,z,vx,vy,vz,type,count=1){
+        this.type=type
+        this.count=count
+        this.x=x
+        this.y=y
+        this.z=z
+        this.vx=vx
+        this.vy=vy
+        this.vz=vz
+        this.vao=count>1?item2VAO:item1VAO
+        this.indexAmount=count>1?item2IndexAmount:item1IndexAmount
+        this.position=new Float32Array(4)
+        this.height=0.3
+        this.width=this.height*0.5
+        this.life=5*60
+        this.tex=[textureSlice[type*3],textureSlice[type*3+1],textureSlice[type*3+2]]
+        
+        this.lighting=[0,0]
+        this.sampleLight()
+    }
+    sampleLight(){
+        let l=getLight(Math.round(this.x),Math.round(this.y),Math.round(this.z))
+        this.lighting[0]=l>>4
+        this.lighting[1]=l&0x0f
+    }
+    update(){
+        
+        let d=1/(dt*(this.grounded?12:0.5)+1)
+        this.vx*=d
+        this.vz*=d
+        this.vy-=dt*10
+        
+        doCollisionX(this,this.vx*dt)
+        doCollisionY(this,this.vy*dt)
+        doCollisionZ(this,this.vz*dt)
+        
+        if(!(this.life&3) && this.count>0){
+            for(let i=objects.length;i--;){
+                let o=objects[i]
+                if(o instanceof Item && o!==this && o.type===this.type && Math.abs(o.x-this.x)+Math.abs(o.y-this.y)+Math.abs(o.z-this.z)<1){
+                    o.count+=this.count
+                    o.vao=item2VAO
+                    o.indexAmount=item2IndexAmount
+                    this.count=0
+                    return true
+                }
+            }
+        }
+        
+        let w=player.width
+        if(!(frameCount&3) && this.life<299 && aabbTest(player.x-w,player.x+w,player.y,player.y+player.height,player.z-w,player.z+w,this.x-1,this.x+1,this.y-0.1,this.y+0.3,this.z-1,this.z+1)){
+            
+            let n=player.distributeToInventory(this.type,this.count,false)
+            if(n>0)
+                this.count-=n
+            else{
+                this.life=0.1
+                
+                this.update=function(){
+                    let dx=player.x-this.x,
+                        dy=player.y+0.75-this.y,
+                        dz=player.z-this.z,
+                        d=Math.sqrt(dx*dx+dy*dy+dz*dz),
+                        m=12/d
+                        
+                    if(d<0.1)this.life=0
+                    
+                    dx*=m
+                    dy*=m
+                    dz*=m
+                    this.x+=dx*dt
+                    this.y+=dy*dt
+                    this.z+=dz*dt
+                    this.render()
+                    
+                    return (this.life-=dt)<=0
+                }
+            }
+        }
+        
+        if(someLightingChanged)this.sampleLight()
+        
+        this.render()
+        
+        return (this.life-=dt)<=0
+    }
+    render(){
+        let dx=player.x-this.x,
+            dy=player.y-this.y,
+            dz=player.z-this.z,
+            v=viewInfo.camDir
+        
+        if(dx*v[0]+dy*v[1]+dz*v[2]<0)return
+        
+        this.position[0]=this.x
+        this.position[1]=this.y+Math.sin(this.life)*0.1+0.15
+        this.position[2]=this.z
+        this.position[3]=this.life
+        D.setUniform('position',this.position)
+        D.setUniform('light',this.lighting)
+        D.setUniform('texSlice',this.tex)
+        
+        profiler.numFaces+=this.indexAmount/6
+        gl.bindVertexArray(this.vao)
+        gl.drawElements(gl.TRIANGLES,this.indexAmount,gl.UNSIGNED_INT,0)
+    }
+}
+
+let farthest=renderDist
+for(let i=0;i<lodRanges.length;i++)
+    farthest=Math.max(farthest,(2<<i)*lodRanges[i][1])
+
+let fov=75,
+    projectionMatrix=D.perspectiveMatrix(fov,aspect,0.1,farthest*16*1.4142),
+    viewMatrix=D.createIdentityMatrix(),
+    viewInfo={camDir:[0,0,0]},
+    frustum=new Float32Array(5*4),
+    setPlane=(i,nx,ny,nz,d)=>{
+        let m=1/Math.sqrt(nx*nx+ny*ny+nz*nz)
+        frustum[i]=nx*m
+        frustum[i+1]=ny*m
+        frustum[i+2]=nz*m
+        frustum[i+3]=d*m
+    },
+    setFrustum=()=>{
+        let vp=viewMatrix
+        //near
+        setPlane(0,vp[3]+vp[2],vp[7]+vp[6],vp[11]+vp[10],vp[15]+vp[14])
+        //left
+        setPlane(4,vp[3]+vp[0],vp[7]+vp[4],vp[11]+vp[8],vp[15]+vp[12])
+        //right
+        setPlane(8,vp[3]-vp[0],vp[7]-vp[4],vp[11]-vp[8],vp[15]-vp[12])
+        //top
+        setPlane(12,vp[3]-vp[1],vp[7]-vp[5],vp[11]-vp[9],vp[15]-vp[13])
+        //bottom
+        setPlane(16,vp[3]+vp[1],vp[7]+vp[5],vp[11]+vp[9],vp[15]+vp[13])
+    },
+    testFrustum=(C)=>{
+        
+        for(let i=0;i<20;i+=4){
+            let nx=frustum[i],
+                ny=frustum[i+1],
+                nz=frustum[i+2],
+                d=frustum[i+3],
+                px=nx>0?C.maxX:C.minX,
+                py=ny>0?C.maxY:C.minY,
+                pz=nz>0?C.maxZ:C.minZ
+            
+            if(nx*px+ny*py+nz*pz<-d)
+                return false
+        }
+        return true
+    }
+
+player.cullDot=((fov/180)-1)/Math.max(aspect*0.5,1)
+player.cullCircle=renderDist*16
+player.cullCircle*=player.cullCircle
+
+ctx.fillStyle='white'
+ctx.font='14px trebuchet ms'
+ctx.strokeStyle='white'
+ctx.lineWidth=1
+
+let profiler={numFaces:0}
+profiler.fps=profiler.cpuFps=profiler.gpuFps=0
+
+let profileRange=50
+profiler.cpu=[]
+profiler.gpu=[]
+
+profiler.query=gl.createQuery()
+profiler.pending=false
+
+function EXPORT_FILE(){
+    
+    let str='',
+        B64='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/',
+        int24=(n)=>{
+            n=(n&0xFFFFFF)>>>0
+            return B64[n>>18]+B64[(n>>12)&63]+B64[(n>>6)&63]+B64[n&63]
+        },
+        uint24=(n)=>{
+            return B64[n>>18]+B64[(n>>12)&63]+B64[(n>>6)&63]+B64[n&63]
+        },
+        uint18=(n)=>{
+            return B64[(n>>12)]+B64[(n>>6)&63]+B64[n&63]
+        }
+    
+    str+=SEED+','
+    str+=Math.round(player.x)+','
+    str+=Math.round(player.y)+','
+    str+=Math.round(player.z)+','
+    
+    for(let i=0;i<36;i++)
+        str+=uint18((player.inventory[i]<<6)|player.inventoryCounts[i])
+    
+    MODS.forEach((mods,key)=>{
+        
+        if(!mods.size)return
+        
+        let cpos=key.split(',').map(x=>x-0)
+        str+=int24(cpos[0])
+        str+=int24(cpos[1])
+        str+=uint24(mods.size)
+        
+        mods.forEach((id,ind)=>{
+            str+=uint24((ind<<8)|id)
+        })
+    })
+    
+    return str
+}
+
+(function(){
+    
+    if(!FILE || !FILE.length)return
+    
+    
+    let file=FILE.split(',')
+    
+    let B64='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/',
+        int24=(a,b,c,d)=>{
+            return (((B64.indexOf(a)<<18)|(B64.indexOf(b)<<12)|(B64.indexOf(c)<<6)|B64.indexOf(d))<<8)>>8
+        },
+        uint24=(a,b,c,d)=>{
+            return (B64.indexOf(a)<<18)|(B64.indexOf(b)<<12)|(B64.indexOf(c)<<6)|B64.indexOf(d)
+        },
+        uint18=(a,b,c)=>{
+            return (B64.indexOf(a)<<12)|(B64.indexOf(b)<<6)|B64.indexOf(c)
+        }
+    
+    
+    SEED=Number(file[0])
+    player.x=Number(file[1])
+    player.y=Number(file[2])
+    player.z=Number(file[3])
+    
+    file=file[4]
+    
+    let ptr=0
+    for(let i=0;i<36;i++){
+        let n=uint18(file[ptr++],file[ptr++],file[ptr++])
+        player.inventory[i]=n>>6
+        player.inventoryCounts[i]=n&63
+    }
+    
+    while(ptr<file.length){
+        
+        let chunkX=int24(file[ptr++],file[ptr++],file[ptr++],file[ptr++]),
+            chunkZ=int24(file[ptr++],file[ptr++],file[ptr++],file[ptr++]),
+            count=uint24(file[ptr++],file[ptr++],file[ptr++],file[ptr++]),
+            key=chunkX+','+chunkZ
+        
+        let chunk=MODS.get(key)
+        if(!chunk){
+            chunk=new Map()
+            MODS.set(key,chunk)
+        }
+        
+        for(let i=0;i<count;i++){
+            let d=uint24(file[ptr++],file[ptr++],file[ptr++],file[ptr++]),
+                posInd=d>>8,
+                id=d&255
+            chunk.set(posInd,id)
+        }
+    }
+})()
+
+
+
+gl.clearColor(0.2,0.7,0.9,1)
+
+function loop(now){
+    
+    if(!profiler.pending)
+        gl.beginQuery(timerQuery.TIME_ELAPSED_EXT,profiler.query)
+        
+    
+    frameCount++
+    dt=D.constrain((now-then)*0.001,0,0.05)
+    time+=dt
+    
+    
+    gl.clear(16640)
+    
+    if(player.creative)
+        player.updateCreative()
+    else
+        player.update()
+    
+    viewInfo=D.setViewMatrix(viewMatrix,projectionMatrix,player.x,player.y+player.eyes,player.z,yaw,pitch)
+    
+    D.useProgram(meshProgram)
+    D.setUniform('viewMatrix',viewMatrix)
+    D.setUniform('camPos',viewInfo.camPos)
+    
+    
+    setFrustum()
+    dirtiedThisFrame=false
+    reprunedThisFrame=false
+    someLightingChanged=false
+    
+    let snappedX=Math.floor(player.x*div16),
+        snappedZ=Math.floor(player.z*div16),
+        pos=viewInfo.camPos,
+        dir=viewInfo.camDir,
+        minX=snappedX-renderDist,
+        maxX=snappedX+renderDist,
+        minZ=snappedZ-renderDist,
+        maxZ=snappedZ+renderDist,
+        cutX=Math.abs(dir[0])*renderDist|0,
+        cutZ=Math.abs(dir[2])*renderDist|0,
+        chunksToRender=[],
+        chunksToAlpha=[],
+        chunksToGenerate=[],
+        chunkT=0,chunkR=0
+    
+    if(dir[0]<0){minX+=cutX}else{maxX-=cutX}
+    if(dir[2]<0){minZ+=cutZ}else{maxZ-=cutZ}
+    
+    for(let x=minX;x<=maxX;x++){
+        for(let z=minZ;z<=maxZ;z++){
+            let chunk=getChunk(x,z)
+            if(!chunk){
+                let d=(snappedX-x)*(snappedX-x)+(snappedZ-z)*(snappedZ-z)
+                chunksToGenerate.push([x,z,d,-1])
+                continue
+            }
+            chunkT++
+            if(chunk.frustumCulling()){
+                let dx=chunk.mx-player.x,
+                    dz=chunk.mz-player.z
+                chunk.distToPlayer=dx*dx+dz*dz
+                chunksToRender.push(chunk)
+                chunkR++
+            }
+        }
+    }
+    if(snappedX!==player.lastSnappedX||snappedZ!==player.lastSnappedZ)
+        chunks.forEach((chunk,key)=>{
+            if(chunk.data===emptyArr)return
+            
+            if(chunk.ix<snappedX-renderDist-2||chunk.ix>snappedX+renderDist+2||chunk.iz<snappedZ-renderDist-2||chunk.iz>snappedZ+renderDist+2){
+                chunk.dispose()
+                chunks.delete(key)
+            }
+        })
+    
+    for(let i=0,N=lodRanges.length;i<N;i++){
+        snappedX>>=1
+        snappedZ>>=1
+        
+        let rangeBegin=lodRanges[i][0],
+            rangeDist=lodRanges[i][1],
+            chunksHere=lodChunks[i],
+            previousLOD=i?lodChunks[i-1]:chunks,
+            scaleSq=(2<<i)*(2<<i),
+        minX=snappedX-rangeDist
+        maxX=snappedX+rangeDist
+        minZ=snappedZ-rangeDist
+        maxZ=snappedZ+rangeDist
+        
+        cutX=Math.abs(dir[0])*rangeDist|0
+        cutZ=Math.abs(dir[2])*rangeDist|0
+        if(dir[0]<0){minX+=cutX}else{maxX-=cutX}
+        if(dir[2]<0){minZ+=cutZ}else{maxZ-=cutZ}
+        
+        for(let x=minX;x<=maxX;x++){
+            for(let z=minZ;z<=maxZ;z++){
+                
+                if(Math.max(Math.abs(x-snappedX),Math.abs(z-snappedZ))<rangeBegin)
+                    continue
+                
+                let chunk=chunksHere.get(chunkKey(x,z))
+                if(!chunk){
+                    let d=(snappedX-x)*(snappedX-x)*scaleSq+(snappedZ-z)*(snappedZ-z)*scaleSq
+                    chunksToGenerate.push([x,z,d,i])
+                    continue
+                }
+                chunkT++
+                if(chunk.frustumCulling()){
+                    let dx=chunk.mx-player.x,
+                        dz=chunk.mz-player.z
+                    chunk.distToPlayer=dx*dx+dz*dz
+                    chunksToRender.push(chunk)
+                    chunkR++
+                }
+            }
+        }
+        if(snappedX!==(player.lastSnappedX>>(i+1))||snappedZ!==(player.lastSnappedZ>>(i+1)))
+            chunksHere.forEach((chunk,key)=>{
+                if(!chunk.data)return
+                
+                if(chunk.ix<snappedX-rangeDist-2||chunk.ix>snappedX+rangeDist+2||chunk.iz<snappedZ-rangeDist-2||chunk.iz>snappedZ+rangeDist+2){
+                    chunk.dispose()
+                    chunksHere.delete(key)
+                }
+            })
+    }
+    
+    chunksToRender.sort(chunkRenderSortingFunc)
+    for(let i=0,n=chunksToRender.length;i<n;i++)
+        chunksToRender[i].renderMesh()
+    gl.bindVertexArray(null)
+    
+    
+    chunksToGenerate.sort(chunkGenSortingFunc)
+    
+    let genInd=0
+    for(let i=0;i<numWorkers;i++){
+        let job=workers[i],
+            chunk=chunksToGenerate[genInd]
+        
+        if(!chunk)break
+        
+        if(!job.busy){
+            
+            let genChunkX=chunk[0],
+                genChunkZ=chunk[1],
+                lod=chunk[3]
+            
+            if(lod<0)
+                chunk=new Chunk(genChunkX,genChunkZ)
+            else
+                chunk=new LodChunk(genChunkX,genChunkZ,lod)
+            
+            job.busy=true
+            job.worker.onmessage=(e)=>{
+                job.busy=false
+                chunk.receiveWorkerData(e.data)
+            }
+            let message=[SEED,chunk.x,chunk.z,chunk.scale]
+            
+            if(lod<0){
+                let chunkMods=MODS.get(chunk.ix+','+chunk.iz)
+                if(chunkMods)
+                    message.push(chunkMods)
+            }else{
+                let size=2<<lod
+                for(let sx=0;sx<size;sx++)
+                    for(let sz=0;sz<size;sz++)
+                        message.push(MODS.get(((chunk.ix*size)+sx)+','+((chunk.iz*size)+sz)))
+            }
+            
+            job.worker.postMessage(message)
+            genInd++
+        }
+    }
+    
+    player.lastSnappedX=snappedX
+    player.lastSnappedZ=snappedZ
+    
+    
+    let ray=player.raycast(player.x,player.y+player.eyes,player.z,-viewInfo.camDir[0],-viewInfo.camDir[1],-viewInfo.camDir[2])
+    if(ray){
+        player.lookingAt=ray[0]
+        player.placingAt=ray[1]
+    }else{
+        player.lookingAt=false
+        player.placingAt=false
+    }
+    
+    
+    D.useProgram(modelProgram)
+    D.setUniform('viewMatrix',viewMatrix)
+    
+    for(let i=objects.length;i--;){
+        let o=objects[i]
+        if(o.update())
+            objects.splice(i,1)
+    }
+    
+    
+    
+    
+    ctx.drawImage(glCanvas,0,0)
+    
+    if(!profiler.pending){
+        gl.endQuery(timerQuery.TIME_ELAPSED_EXT)
+        profiler.pending=true
+    }
+    if(profiler.pending){
+        let available=gl.getQueryParameter(profiler.query,gl.QUERY_RESULT_AVAILABLE)       
+            disjoint=gl.getParameter(timerQuery.GPU_DISJOINT_EXT)
+            
+        if(available&&!disjoint){
+            
+            profiler.gpu.push(gl.getQueryParameter(profiler.query,gl.QUERY_RESULT)/1e6)
+            if(profiler.gpu.length>profileRange)
+                profiler.gpu.shift()
+            
+            gl.deleteQuery(profiler.query)
+            profiler.query=gl.createQuery()
+            profiler.pending=false
+        }
+    }
+    
+    let cpu=0,gpu=0
+    profiler.cpu.push(performance.now()-now)
+    if(profiler.cpu.length>profileRange)
+       profiler.cpu.shift()
+    
+    for(let i=0;i<profileRange;i++){
+        if(i<profiler.cpu.length)cpu+=profiler.cpu[i]
+        if(i<profiler.gpu.length)gpu+=profiler.gpu[i]
+    }
+    cpu/=profiler.cpu.length
+    gpu/=profiler.gpu.length
+    
+    if(!(frameCount&3)){
+        profiler.fps=1/dt
+        profiler.cpuFps=1000/cpu
+        profiler.gpuFps=1000/gpu
+    }
+    
+    if(keys.y){
+        let s=15,y=-s+14
+        ctx.fillText('fps: '+profiler.fps.toFixed(2),5,y+=s)
+        ctx.fillText('CPU: '+cpu.toFixed(2)+'   '+profiler.cpuFps.toFixed(1),5,y+=s)
+        ctx.fillText('GPU: '+gpu.toFixed(2)+'   '+profiler.gpuFps.toFixed(1),5,y+=s)
+        let tSize=chunks.size,nxn=1
+        for(let i=0;i<lodChunks.length;i++)tSize+=lodChunks[i].size
+        let inRange=(renderDist*2+1)*(renderDist*2+1)
+        for(let i=0;i<lodRanges.length;i++)inRange+=(lodRanges[i][1]*2+1)*(lodRanges[i][1]*2+1)-((lodRanges[i][0]-1)*2+1)*((lodRanges[i][0]-1)*2+1)
+        
+        ctx.fillText('chunks: '+chunkR.toLocaleString()+' rendered / '+chunkT.toLocaleString()+' iterated / '+inRange.toLocaleString()+' in-range / '+tSize.toLocaleString()+' active',5,y+=s)
+        ctx.fillText('LODs: '+chunks.size.toLocaleString()+' [1x1] / '+lodChunks.map(x=>x.size.toLocaleString()+' ['+((nxn+=nxn)+'x'+nxn)+']').join(' / '),5,y+=s)
+        ctx.fillText('meshes: '+profiler.numFaces.toLocaleString()+' faces / '+(profiler.numFaces*4).toLocaleString()+' verts / '+(profiler.numFaces*2).toLocaleString()+' tris',5,y+=s)
+        ctx.fillText('entities: '+objects.length,5,y+=s)
+        ctx.fillText('snapped: '+Math.floor(player.x*div16)+','+Math.floor(player.z*div16),5,y+=s)
+        ctx.fillText('position: '+player.x.toFixed(2)+','+player.y.toFixed(2)+','+player.z.toFixed(2),5,y+=s)
+        ctx.fillText('facing:'+viewInfo.camDir.map(x=>' '+(-x).toFixed(2)),5,y+=s)
+        ctx.fillText('mem MB: '+(performance.memory.usedJSHeapSize/1048576).toFixed(2),5,y+=s)
+        let count=0
+        for(let i=0;i<numWorkers;i++)if(workers[i].busy)count++
+        ctx.fillText('workers busy: '+count+'/'+numWorkers,5,y+=s)
+    }
+    ctx.beginPath()
+    ctx.moveTo(halfWidth,halfHeight-5)
+    ctx.lineTo(halfWidth,halfHeight+5)
+    ctx.moveTo(halfWidth-5,halfHeight)
+    ctx.lineTo(halfWidth+5,halfHeight)
+    ctx.stroke()
+    profiler.numFaces=0
+    
+    then=now
+    window.parent.raf=window.requestAnimationFrame(loop)
+}
+
+
+if(window.parent.raf)window.cancelAnimationFrame(window.parent.raf)
+loop(then=performance.now())
+
+}
+
+main(window.SAVE_CODE)
+</script>
+
+
+
+    </body>
+</html>
